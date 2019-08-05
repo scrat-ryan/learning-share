@@ -15,8 +15,8 @@
 
         [admin@UAT-HADOOP-15 ~]$ sudo pip install virtualenvwrapper
         [admin@UAT-HADOOP-15 ~]$ mkdir $HOME/.virtualenvs
-                                export WORKON_HOME=$HOME/.virtualenvs  #设置环境变量
-                                source /usr/bin/virtualenvwrapper.sh
+        export WORKON_HOME=$HOME/.virtualenvs  #设置环境变量
+        source /usr/bin/virtualenvwrapper.sh
         [admin@UAT-HADOOP-15 ~]$ source ~/.bash_profile
 
 2. 基本使用
@@ -47,15 +47,15 @@
 
         [admin@UAT-HADOOP-15 ~]$ cd ~/.prestoadmin
         [admin@UAT-HADOOP-15 ~]$ vim config.json
-                                  {
-                                     "username":"admin",
-                                     "port": "22",
-                                     "coordinator":"UAT-HADOOP-15",
-                                     "workers":[
-                                         "UAT-HADOOP-13","UAT-HADOOP-14"
-                                     ],
-                                     "java8_home": "/usr/local/jdk"
-                                 }
+        {
+            "username":"admin",
+            "port": "22",
+            "coordinator":"UAT-HADOOP-15",
+            "workers":[
+                "UAT-HADOOP-13","UAT-HADOOP-14"
+            ],
+            "java8_home": "/usr/local/jdk"
+        }
 
 4. Sudo Password Specification
 
