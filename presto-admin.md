@@ -42,6 +42,9 @@
         [admin@UAT-HADOOP-15 ~]$ workon prestoadmin
         (prestoadmin) [admin@UAT-HADOOP-15 ~]$ cd ~/guosq/presto-admin-master/
         (prestoadmin) [admin@UAT-HADOOP-15 ~]$ python setup.py install
+    我在uat安装的时候提示安装pyasn1，则执行
+    
+        pip install pyasn1
 
 3. configure prestoadmin virtualenv
 
