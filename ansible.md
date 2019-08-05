@@ -34,10 +34,12 @@ Ansible可以让用户避免编写脚本或代码来管理应用，同时还能�
                              ├── hosts  # ansible的主仓库 用来存储需要管理的远程主机的相关信息                         
                              └── roles            
     [admin@UAT-HADOOP-15 ~]$ sudo vim /etc/ansible/hosts
-                             [presto]
-                             10.121.18.13 UAT-HADOOP-13=UAT-HADOOP-13
-                             10.121.18.14 UAT-HADOOP-14=UAT-HADOOP-14
-                             10.121.18.15 UAT-HADOOP-15=UAT-HADOOP-15
+    [local]
+    localhost ansible_connection=local
+    [presto]
+    10.121.18.13 UAT-HADOOP-13=UAT-HADOOP-13
+    10.121.18.14 UAT-HADOOP-14=UAT-HADOOP-14
+    10.121.18.15 UAT-HADOOP-15=UAT-HADOOP-15
 
 ## ansible 命令
 
