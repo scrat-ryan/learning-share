@@ -13,11 +13,11 @@
 
 1. install 
 
-        [admin@UAT-HADOOP-15 ~] sudo pip install virtualenvwrapper
-        [admin@UAT-HADOOP-15 ~] mkdir $HOME/.virtualenvs
+        [admin@UAT-HADOOP-15 ~]$ sudo pip install virtualenvwrapper
+        [admin@UAT-HADOOP-15 ~]$ mkdir $HOME/.virtualenvs
                                 export WORKON_HOME=$HOME/.virtualenvs  #设置环境变量
                                 source /usr/bin/virtualenvwrapper.sh
-        [admin@UAT-HADOOP-15 ~] source ~/.bash_profile
+        [admin@UAT-HADOOP-15 ~]$ source ~/.bash_profile
 
 2. 基本使用
     * lsvirtualenv              #列举所有的环境。
@@ -76,10 +76,10 @@
 
         [admin@UAT-HADOOP-15 ~]$ workon prestoadmin
         (prestoadmin) [admin@UAT-HADOOP-15 ~]$ cdvirtualenv
-        (prestoadmin) [admin@UAT-HADOOP-15 prestoadmin]$cd bin/
-        (prestoadmin) [admin@UAT-HADOOP-15 bin]$./presto-admin --help
-        (prestoadmin) [admin@UAT-HADOOP-15 bin]$wget https://repo1.maven.org/maven2/com/facebook/presto/presto-server-rpm/0.223/presto-server-rpm-0.223.       rpm  #下载0.223rpm
-        (prestoadmin) [admin@UAT-HADOOP-15 bin]$./presto-admin server install presto-server-rpm-0.223.rpm -I
+        (prestoadmin) [admin@UAT-HADOOP-15 prestoadmin]$ cd bin/
+        (prestoadmin) [admin@UAT-HADOOP-15 bin]$ ./presto-admin --help
+        (prestoadmin) [admin@UAT-HADOOP-15 bin]$ wget https://repo1.maven.org/maven2/com/facebook/presto/presto-server-rpm/0.223/presto-server-rpm-0.223.       rpm  #下载0.223rpm
+        (prestoadmin) [admin@UAT-HADOOP-15 bin]$ ./presto-admin server install presto-server-rpm-0.223.rpm -I
 
 2. deploy
 
@@ -103,9 +103,9 @@
 
 4. query presto
 
-        [admin@UAT-HADOOP-15 guosq]$mv /usr/lib/presto/lib/presto-client-0.223.jar presto
-        [admin@UAT-HADOOP-15 guosq]$chmod +x presto
-        [admin@UAT-HADOOP-15 ~]$presto --server 10.121.18.15:9066 --catalog tpch --schema tiny
+        [admin@UAT-HADOOP-15 guosq]$ mv /usr/lib/presto/lib/presto-client-0.223.jar presto
+        [admin@UAT-HADOOP-15 guosq]$ chmod +x presto
+        [admin@UAT-HADOOP-15 ~]$ presto --server 10.121.18.15:9066 --catalog tpch --schema tiny
         presto:tiny>select count(*) from lineitem;
 
 ## 参考
