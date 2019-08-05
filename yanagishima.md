@@ -57,6 +57,10 @@
     cors.enabled=false
     [admin@UAT-HADOOP-15 yanagishima-17.0]$ nohup ./bin/yanagishima-start.sh >/app/module/guosq/yanagishima/log/yanagishima.log 2>&1 &
 
+## stop
+
+    [admin@UAT-HADOOP-15 yanagishima-17.0]$ ./bin/yanagishima-shutdown.sh
+
 ## 参考
 
 * [https://github.com/yanagishima/yanagishima]
