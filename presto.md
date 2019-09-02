@@ -97,14 +97,22 @@
 
 * 范围运算符-BETWEEN和NOT BETWEEN
 
+* 空和非空-IS NULL和 IS NOT NULL
+
+* IS DISTINCT FROM 和 IS NOT DISTINCT FROM
+
+  在SQL种NULL表示一个已知的值，因此，任何比较相关的语句含有NULL，结果都是NULL。而 IS DISTINCT FROM 和 IS NOT DISTINCT FROM 运算符将NULL视为一个已知的值，这两个运算符保证即使输入中有NULL，结果也是TRUE或FALSE。
+
+  select null is distinct from null =>false
+  
+  select null is not distinct from null => true
+
     a|b|a = b|a <> b|a DISTINCT b|a NOT DISTINCT b
     -|-|-|-|-|-
     1|1|TRUE|FALSE|FALSE|TRUE
     1|2|FALSE|TRUE|TRUE|FALSE
     1|NULL|NULL|NULL|TRUE|FALSE
     NULL|NULL|NULL|NULL|FALSE|TRUE
-
-* 空和非空-IS NULL和 IS NOT NULL
 
 * 最大和最小-greatest(value1, value2) 和least(value1, value2)
 
