@@ -101,11 +101,11 @@
 
 * IS DISTINCT FROM 和 IS NOT DISTINCT FROM
 
-  在SQL种NULL表示一个已知的值，因此，任何比较相关的语句含有NULL，结果都是NULL。而 IS DISTINCT FROM 和 IS NOT DISTINCT FROM 运算符将NULL视为一个已知的值，这两个运算符保证即使输入中有NULL，结果也是TRUE或FALSE。
+  presto的特有用法。在SQL种NULL表示一个已知的值，因此，任何比较相关的语句含有NULL，结果都是NULL。而 IS DISTINCT FROM 和 IS NOT DISTINCT FROM 运算符将NULL视为一个已知的值，这两个运算符保证即使输入中有NULL，结果也是TRUE或FALSE。
 
-  select null is distinct from null =>false
+    select null is distinct from null =>false
   
-  select null is not distinct from null => true
+    select null is not distinct from null => true
 
     a|b|a = b|a <> b|a DISTINCT b|a NOT DISTINCT b
     -|-|-|-|-|-
@@ -115,13 +115,88 @@
     NULL|NULL|NULL|NULL|FALSE|TRUE
 
 * 最大和最小-greatest(value1, value2) 和least(value1, value2)
+  
+  这两个函数不是SQL标准函数，他们是常用的扩展。 与Presto的其他数函数相似，任何一个参数为空，则返回空。 但是在某些其他数据库中，例如PostgreSQL， 只有全部参数都为空时，才返回空。
 
-* 
+* 批量比较运算符-ALL, ANY and SOME
+
+    表达式|含义
+    -|-
+    A = ALL (...)|当A等于所有值的时候返回TRUE.
+    A <> ALL (...)|当A不等于所有值的时候返回TRUE.
+    A < ALL (...)|当A小于所有值的时候返回TRUE.
+    A = ANY (...)|当A等于任一值的时候返回TRUE. 等价于A IN (...).
+    A <> ANY (...)|当A不等于任一值的时候返回TRUE.
+    A < ANY (...)|当A小于任一值的时候返回TRUE.
 
 ### 条件表达式
 
+* CASE
 
+  简单模式：
 
+    CASE expression
+    WHEN value THEN result
+    [ WHEN ... ]
+    [ ELSE result ]
+    END
+  
+  查找模式：
+
+    CASE
+    WHEN condition THEN result
+    [ WHEN ... ]
+    [ ELSE result ]
+    END
+
+* IF
+
+  if(condition, true_value) -- 如果 condition 为真，返回 true_value；否则返回空，true_value 不进行计算
+
+  if(condition, true_value, false_value) -- 如果 condition 为真，返回 true_value ； 否则计算并返回 false_value 。
+
+* COALESCE
+
+  coalesce(value1, value2[, ...]) -- 返回参数列表中的第一个非空 value 。 与 CASE 表达式相似，仅在必要时计算参数。
+
+* NULLIF
+ 
+  nullif(value1, value2) -- 如果 value1 与 value2 相等，返回空；否则返回 value1 。
+
+* TRY
+
+  try(expression) -- 评估一个表达式，如果出错，则返回Null。类似于编程语言中的try catch。try函数一般结合COALESCE使用，COALESCE可以将异常的空值转为0或者’’。以下情况会被try捕获:
+
+  分母为0
+
+  错误的cast操作或者函数入参
+
+  数字超过了定义长度
+
+  个人不推荐使用，应该明确以上异常，做数据预处理
+
+### Lambda表达式
+
+### 转换函数
+
+* 转换函数
+
+  cast(value AS type) → type  -- 显式转换一个值的类型。 可以将varchar类型的值转为数字类型，反过来转换也可以。
+
+  try_cast(value AS type) → type -- 与 cast() 相似，区别是转换失败返回null。
+
+* 数据大小
+
+  parse_presto_data_size(string) -> decimal(38)
+
+    SELECT parse_presto_data_size('1B'); -- 1
+    SELECT parse_presto_data_size('1kB'); -- 1024
+    SELECT parse_presto_data_size('1MB'); -- 1048576
+    SELECT parse_presto_data_size('2.3MB'); -- 2411724
+
+* 数据类型
+
+  typeof(expr) → varchar -- 返回表达式的数据类型
 
 ### 日期时间函数和运算符
 
