@@ -198,6 +198,39 @@
 
   typeof(expr) → varchar -- 返回表达式的数据类型
 
+### 数字函数和运算符
+
+* 数字函数  
+
+  * abs(x) → [same as input]          -- 返回x的绝对值
+  * cbrt(x) → double                  -- 返回x的立方根
+  * ceil(x) → [same as input]         -- 是ceiling()的同名方法
+  * ceiling(x) → [same as input]      -- 返回x的向上取整的数值
+  * degrees(x) → double               -- 返回x的度数值,从弧度弧度x转换为角度
+  * e() → double                      -- 返回欧拉数的双重值
+  * exp(x) → double                   -- 返回欧拉数的指数值
+  * floor(x) → [same as input]        -- 返回x向下取整的数值
+  * ln(x) → double                    -- 返回x的自然对数
+  * log2(x) → double                  -- 返回x的基2的对数
+  * log10(x) → double                 -- 返回x的基10对数
+  * log(x,y) → double                 -- 返回x的基y对数
+  * mod(n, m) → [same as input]       -- 返回n除以m的模数（余数）
+  * pi() → double                     -- 返回pi的双重值
+  * pow(x, p) → double                -- 是power()的同名方法
+  * power(x, p) → double              -- 返回x的p次方
+  * radians(x) → double               -- 返回x的弧度值,将角度x转换为弧度
+  * rand() → double                   -- 弧度的别名
+  * random() → double                 -- 返回伪随机值
+  * random(n) → [same as input]       -- 
+  * round(x) → [same as input]        -- 返回x的舍入值
+  * round(x, d) → [same as input]     -- 第'd'小数位四舍五入的x值
+  * sqrt(x) → double                  -- 返回x的平方根
+  * truncate(x) → double              -- 截取x为整数
+  * truncate(x,n) → double            -- 截取x小数点后n位
+
+
+
+
 ### 日期时间函数和运算符
 
 运算符|示例|结果
