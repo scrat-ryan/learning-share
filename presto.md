@@ -228,7 +228,72 @@
   * truncate(x) → double              -- 截取x为整数
   * truncate(x,n) → double            -- 截取x小数点后n位
 
+* 三角函数.
 
+  所有三角函数的参数都是以弧度表示。参考单位转换函数degrees() 和 radians()
+
+  * acos(x) → double                     -- 返回反余弦值（x）
+  * asin(x) → double                     -- 返回正弦值（x）
+  * atan(x) → double                     -- 返回反正切值（x）
+  * atan2(y, x) → double                 -- 返回反正切值（y / x）
+  * cos(x) → double                      -- 返回余弦值（x）
+  * cosh(x) → double                     -- 返回双曲余弦值（x）
+  * sin(x) → double                      -- 返回正弦值（x）
+  * tan(x) → double                      -- 返回正切值（x）
+  * tanh(x) → double                     -- 返回双曲正切值（x）
+
+### 字符串函数和运算符
+
+* 字符串运算符
+
+  使用运算符： || 完成字符串连接
+
+* 字符串函数
+
+  * chr(n) → varchar                            -- 返回在下标为n的位置的char字符的字符串格式表示,`select chr(100)-->d`
+  * codepoint(string) → integer                 -- 返回字符串string的asc码,`select codepoint(d)-->100`
+  * concat(string1, ..., stringN) → varchar     -- 字符串拼接, 可用||代替
+  * hamming_distance(string1, string2)→ bigint  -- 返回两个等长字符串的汉明距离【表示两个等长字符串在对应位置上不同字符的数目】
+  * length(string) → bigint                     -- 返回字符串的长度
+  * lower(string) → varchar                     -- 将转换为小写
+  * lpad(string, size, padstring) → varchar     -- 从左边对字符串使用指定的字符进行填充
+  * ltrim(string) → varchar                     -- 去掉字符串开头的空格
+  * replace(string, search) → varchar           -- 去掉字符串种所有search实例
+  * replace(string, search, replace) → varchar  -- 将字符串中所有search实例替换为replace
+  * reverse(string) → varchar                   -- 字符串反转
+  * rpad(string, size, padstring) → varchar     -- 从右边对字符串使用指定的字符进行填充
+  * rtrim(string) → varchar                     -- 去掉字符串末尾的空格
+  * split(string, delimiter) -> array(varchar)  -- 按照指定分隔符切分字符串为一个array
+  * split(string, delimiter, limit) -> array(varchar) -- 按照指定分隔符切分字符串为一个array,限定数量。最后一个元素包含了最后一个字符串后面所有的字符。Limit 必须是个数字
+  * split_part(string, delimiter, index) → varchar -- 按照指定分隔符切分字符串为一个array,index从1开始,如果Index超过了数组长度,则返回null。
+  * split_to_map(string, entryDelimiter, keyValueDelimiter) → map<varchar, varchar>  -- 按照entryDelimiter和keyValueDelimiter分隔符切分字符串为一个map。entryDelimiter将字符串切分为key-value键值对，KeyValueDelimiter将每一个键值对切分为key和value。`select split_to_map('key1,value1\key2,value2','\',',') --> {key1=value1, key2=value2}`
+  * split_to_map(string, entryDelimiter, keyValueDelimiter, function(k, v1, v2, res)) → map<varchar, varchar>  -- 出现相同的key，按照function确定value。 SELECT(split_to_map('a:1;b:2;a:3', ';', ':', (k, v1, v2) -> v1)); --> {a=1, b=2}
+  * split_to_multimap(string, entryDelimiter, keyValueDelimiter) → (varchar, array(varchar))  -- 每一个key对应的value为一个数组  `select split_to_multimap('a:1;b:2;a:3', ';', ':') --> {a=[1, 3], b=[2]}`
+  * strpos(string, substring) → bigint             -- 返回字符串中第一次出现substring的位置。从1开始，如果未找到，返回0。
+  * strpos(string, substring, instance) → bigint 
+  * strrpos(string, substring) → bigint            -- 返回字符串中最后一次出现substring的位置。从1开始，如果未找到，返回0。
+  * strrpos(string, substring, instance) → bigint 
+  * position(substring IN string) → bigint         -- 返回substring首次出现在string中的位置,没有返回0`SELECT position('11122' in 'fsd11122ghjnk')`
+  * substr(string, start) → varchar                -- 从start位置 开始 截取字符串【起始为1】
+  * substr(string, start, length) → varchar        -- 从start位置 开始 截取字符串,截取的长度为length。
+  * trim(string) → varchar                         -- 去掉字符串种的空格
+  * upper(string) → varchar                        -- 将字符串转换为大写
+  * word_stem(word) → varchar
+  * word_stem(word, lang) → varchar
+
+### 正则表达式
+
+  所有的正则表达式函数都使用Java样式的语法
+
+  * regexp_extract_all(string, pattern) -> array(varchar)  -- 返回与模式的正则表达式匹配的字符串`select regexp_extract_all('1a 2b 14m', '\d+'); --> [1, 2, 14]`
+  * regexp_extract_all(string, pattern, group) -> array(varchar) -- 返回与模式和组的正则表达式匹配的字符串`select regexp_extract_all('1a 2b 14m', '(\d+)([a-z]+)', 2)`
+  * regexp_extract(string, pattern) → varchar              -- 返回与模式的正则表达式匹配的第一个子串`select regexp_extract('1a 2b 14m', '\d+'); --> 1`
+  * regexp_extract(string, pattern, group) → varchar       -- 返回与模式和组的正则表达式匹配的第一个子字符串`返回与模式和组的正则表达式匹配的第一个子字符串`
+  * regexp_like(string, pattern) → boolean                 -- 返回模式的字符串匹配。如果返回字符串，则该值将为true，否则为false`select regexp_like('1a 2b 14m', '\d+b'); --> true`
+  * regexp_replace(string, pattern) → varchar              -- 移除模式的字符串匹配`select regexp_replace('1a 2b 14m', '\d+[ab] '); --> '14m'`
+  * regexp_replace(string, pattern, replacement) → varchar -- 替换模式的字符串匹配`select regexp_replace('1a 2b 14m', '(\d+)([ab]) ', '3c$2 '); --> '3ca 3cb 14m'`
+  * regexp_replace(string, pattern, function) → varchar    -- 按照function替换模式的字符串匹配`SELECT regexp_replace('new yOrK', '(\w)(\w*)', x -> upper(x[1]) || lower(x[2])); --> New York`
+  * regexp_split(string, pattern) -> array(varchar)        -- 拆分给定模式的正则表达式`select regexp_split('1a 2b 14m', '\s*[a-z]+\s*'); --> [1, 2, 14, ]`
 
 
 ### 日期时间函数和运算符
