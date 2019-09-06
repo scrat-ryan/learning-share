@@ -295,6 +295,71 @@
   * regexp_replace(string, pattern, function) → varchar    -- 按照function替换模式的字符串匹配`SELECT regexp_replace('new yOrK', '(\w)(\w*)', x -> upper(x[1]) || lower(x[2])); --> New York`
   * regexp_split(string, pattern) -> array(varchar)        -- 拆分给定模式的正则表达式`select regexp_split('1a 2b 14m', '\s*[a-z]+\s*'); --> [1, 2, 14, ]`
 
+### JSON函数和运算符
+
+* 转换为JSON
+
+      SELECT CAST(NULL AS JSON); --> NULL
+      SELECT CAST(1 AS JSON); --> JSON '1'
+      SELECT CAST(9223372036854775807 AS JSON); --> JSON '9223372036854775807'
+      SELECT CAST('abc' AS JSON); --> JSON '"abc"'
+      SELECT CAST(true AS JSON); --> JSON 'true'
+      SELECT CAST(1.234 AS JSON); --> JSON '1.234'
+      SELECT CAST(ARRAY[1, 23, 456] AS JSON); --> JSON '[1,23,456]'
+      SELECT CAST(ARRAY[1, NULL, 456] AS JSON); --> JSON '[1,null,456]'
+      SELECT CAST(ARRAY[ARRAY[1, 23], ARRAY[456]] AS JSON); --> JSON '[[1,23],[456]]'
+      SELECT CAST(MAP_FROM_ENTRIES(ARRAY[('k1', 1), ('k2', 23), ('k3', 456)]) AS JSON); --> JSON '{"k1":1,"k2":23,"k3":456}'
+      SELECT CAST(CAST(ROW(123, 'abc', true) AS ROW(v1 BIGINT, v2 VARCHAR, v3 BOOLEAN)) AS JSON); --> JSON '[123,"abc",true]'
+
+* JSON转换为其他数据类型 
+
+      SELECT CAST(JSON 'null' AS VARCHAR); --> NULL
+      SELECT CAST(JSON '1' AS INTEGER); --> 1
+      SELECT CAST(JSON '9223372036854775807' AS BIGINT); --> 9223372036854775807
+      SELECT CAST(JSON '"abc"' AS VARCHAR); --> abc
+      SELECT CAST(JSON 'true' AS BOOLEAN); --> true
+      SELECT CAST(JSON '1.234' AS DOUBLE); --> 1.234
+      SELECT CAST(JSON '[1,23,456]' AS ARRAY(INTEGER)); --> [1, 23, 456]
+      SELECT CAST(JSON '[1,null,456]' AS ARRAY(INTEGER)); --> [1, NULL, 456]
+      SELECT CAST(JSON '[[1,23],[456]]' AS ARRAY(ARRAY(INTEGER))); --> [[1, 23], [456]]
+      SELECT CAST(JSON '{"k1":1,"k2":23,"k3":456}' AS MAP(VARCHAR, INTEGER)); --> {k1=1, k2=23, k3=456}
+      SELECT CAST(JSON '{"v1":123,"v2":"abc","v3":true}' AS ROW(v1 BIGINT, v2 VARCHAR, v3 BOOLEAN)); --> {v1=123, v2=abc, v3=true}
+      SELECT CAST(JSON '[123,"abc",true]' AS ROW(v1 BIGINT, v2 VARCHAR, v3 BOOLEAN)); --> {value1=123, value2=abc, value3=true}
+
+* JSON函数
+
+  * json_array_contains(json, value) → boolean  -- 判断value是否在json（json格式的字符串）中存在`SELECT json_array_contains('[1, 2, 3]', 2); --> true`
+  * json_array_get(json_array, index) → json    -- 获取json数组中索引的元素,索引下标从0开始,-1表示最后一个。如果索引下标不存在，返回null。
+
+        SELECT json_array_get('["a", [3, 9], "c"]', 0);  --> JSON 'a'
+        SELECT json_array_get('["c", [3, 9], "a"]', -1); --> JSON 'a'
+        SELECT json_array_get('["c", [3, 9], "a"]', -2); --> JSON '[3,9]'
+        SELECT json_array_get('[]', 0); --> null
+        SELECT json_array_get('["a", "b", "c"]', 10); --> null
+        SELECT json_array_get('["c", "b", "a"]', -10); --> null
+  
+  * json_array_length(json) → bigint  -- 返回json数组中的长度`SELECT json_array_length('[1, 2, 3]');  --> 3`
+  * json_format(json) → varchar       -- 返回json结构格式
+
+        SELECT json_format(JSON '{"a": 1, "b": 2}'); --> '{"a":1,"b":2}'
+        SELECT json_format(JSON '[1, 2, 3]'); --> '[1,2,3]'
+        SELECT json_format(JSON '"abc"'); --> '"abc"'
+        SELECT json_format(JSON '42'); --> '42'
+        SELECT json_format(JSON 'true'); --> 'true'
+        SELECT json_format(JSON 'null'); --> 'null'
+  
+  * json_parse(string) → json         -- 将字符串解析成json
+
+        SELECT json_parse('not_json'); --> ERROR!
+        SELECT json_parse('["a": 1, "b": 2]'); --> JSON '["a": 1, "b": 2]'
+        SELECT json_parse('[1, 2, 3]'); --> JSON '[1,2,3]'
+        SELECT json_parse('"abc"'); --> JSON '"abc"'
+        SELECT json_parse('42'); --> JSON '42'
+        SELECT json_parse('true'); --> JSON 'true'
+        SELECT json_parse('null'); --> JSON 'null'
+
+  * json_size(json, json_path) → bigint
+
 
 ### 日期时间函数和运算符
 
