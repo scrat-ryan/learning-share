@@ -360,20 +360,39 @@
 
   * json_size(json, json_path) → bigint
 
-
 ### 日期时间函数和运算符
 
-运算符|示例|结果
-:-:|-|-
-+|date '2019-08-14' + interval '2' day|2019-08-16
-+|time '01:00' + interval '3' hour|04:00:00.000
-+|timestamp '2019-08-14 01:00' + interval '29' hour|2019-08-15 06:00:00.000
-+|timestamp '2012-10-31 01:00' + interval '1' month|2012-11-30 01:00:00.000
-+|interval '2' day + interval '3' hour|2 03:00:00.000
-+|interval '3' year + interval '5' month|3-5
--|date '2012-08-08' - interval '2' day|2012-08-06
--|time '01:00' - interval '3' hour|22:00:00.000
--|timestamp '2012-08-08 01:00' - interval '29' hour|2012-08-06 20:00:00.000
--|timestamp '2012-10-31 01:00' - interval '1' month|2012-09-30 01:00:00.000
--|interval '2' day - interval '3' hour|1 21:00:00.000
--|interval '3' year - interval '5' month|2-7
+* 日期时间运算符
+
+  运算符|示例|结果
+  :-:|-|-
+  +|date '2019-08-14' + interval '2' day|2019-08-16
+  +|time '01:00' + interval '3' hour|04:00:00.000
+  +|timestamp '2019-08-14 01:00' + interval '29' hour|2019-08-15 06:00:00.000
+  +|timestamp '2012-10-31 01:00' + interval '1' month|2012-11-30 01:00:00.000
+  +|interval '2' day + interval '3' hour|2 03:00:00.000
+  +|interval '3' year + interval '5' month|3-5
+  -|date '2012-08-08' - interval '2' day|2012-08-06
+  -|time '01:00' - interval '3' hour|22:00:00.000
+  -|timestamp '2012-08-08 01:00' - interval '29' hour|2012-08-06 20:00:00.000
+  -|timestamp '2012-10-31 01:00' - interval '1' month|2012-09-30 01:00:00.000
+  -|interval '2' day - interval '3' hour|1 21:00:00.000
+  -|interval '3' year - interval '5' month|2-7
+
+* 日期时间函数
+
+  * current_date -> date                           -- 返回当前日期
+  * current_time -> time with time zone            -- 返回当前时间
+  * current_timestamp -> timestamp with time zone  -- 返回当前时间戳
+  * current_timezone() → varchar                   -- 返回当前时区
+  * now()                                          -- 效果同current_timestamp
+  * localtime                                      -- 获取当地时间
+  * localtimestamp                                 -- 获取当地时间戳
+  * date(x) → date                                 -- 将x转换为日期,同CAST(x AS date). `select date('2019-08-30')  --> data 2019-08-30`
+  * from_unixtime(unixtime) → timestamp            -- 将unix时间戳转换为时间戳   `select from_unixtime(1149578976)  --> 2006-06-06` 15:29:36.000
+  * to_milliseconds(interval) → bigint             -- 将interval数据转换为毫秒。 `select to_milliseconds(interval '1' day) --> 86400000`
+  * to_unixtime(timestamp) → double                -- 将时间戳转换为unixtime。   `to_unixtime(timestamp '2012-09-30 01:00:00') --> 1348938000`
+
+* 截取函数
+
+  * 
