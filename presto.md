@@ -397,17 +397,125 @@
 
   * date_trunc(unit, x) → [same as input]          -- 返回x截取到单位unit之后的值。以 2001-08-22 03:04:05.321 作为输入，不同单位截取后的值为
 
-        unit|x
-        -|-|-
-        second|2001-08-22 03:04:05.000
-        minute|2001-08-22 03:04:00.000
-        hour|2001-08-22 03:00:00.000
-        day|2001-08-22 00:00:00.000
-        week|2001-08-20 00:00:00.000
-        month|2001-08-01 00:00:00.000
-        quarter|2001-07-01 00:00:00.000
-        year|2001-01-01 00:00:00.000
+    单位|x
+    -|-
+    second|2001-08-22 03:04:05.000
+    minute|2001-08-22 03:04:00.000
+    hour|2001-08-22 03:00:00.000
+    day|2001-08-22 00:00:00.000
+    week|2001-08-20 00:00:00.000
+    month|2001-08-01 00:00:00.000
+    quarter|2001-07-01 00:00:00.000
+    year|2001-01-01 00:00:00.000
 
 * 间隔函数
 
-  *  
+  * 本函数支持如下所列的间隔单位
+
+    单位|描述
+    -|-
+    second|秒
+    minute|分
+    hour|时
+    day|天
+    week|周
+    month|月
+    quarter|季
+    year|年
+
+  * date_add(unit, value, timestamp) → [same as input]
+
+    在timestamp的基础上加上value个unit。如果想要执行相减的操作，可以通过将value赋值为负数来完成。
+
+  * date_diff(unit, timestamp1, timestamp2) → bigint 
+
+    返回 timestamp2 - timestamp1 之后的值，该值的表示单位是unit。
+
+* 期间函数
+
+  * parse_duration支持如下所列的单位
+
+    单位|描述
+    -|-
+    ns|Nanoseconds
+    us|Microseconds
+    ms|Milliseconds
+    s|Seconds
+    m|Minutes
+    h|Hours
+    d|Days
+
+    parse_duration(string) → interval     -- 将一个格式化的字符串值单位转化成一个interval，值是单位的最小组成部分.
+
+        SELECT parse_duration('42.8ms'); -- 0 00:00:00.043
+        SELECT parse_duration('3.81 d'); -- 3 19:26:24.000
+        SELECT parse_duration('5m');     -- 0 00:05:00.000
+
+* MySQL日期函数
+
+  在这一章节中使用与MySQLdate_parse和str_to_date相兼容的格式化字符串。下面的表格是基于MySQL使用手册列出的，描述了各种格式化描述符：
+
+  Specifier|Description
+  -|-
+  %a|Abbreviated weekday name (Sun .. Sat)
+  %b|Abbreviated month name (Jan .. Dec)
+  %c|Month, numeric (1 .. 12)
+  %D|Day of the month with English suffix (0th, 1st, 2nd, 3rd, …)
+  %d|Day of the month, numeric (01 .. 31)
+  %e|Day of the month, numeric (1 .. 31) 
+  %f|Fraction of second (6 digits for printing: 000000 .. 999000; 1 - 9 digits for parsing: 0 .. 999999999) 
+  %H|Hour (00 .. 23)
+  %h|Hour (01 .. 12)
+  %I|Hour (01 .. 12)
+  %i|Minutes, numeric (00 .. 59)
+  %j|Day of year (001 .. 366)
+  %k|Hour (0 .. 23)
+  %l|Hour (1 .. 12)
+  %M|Month name (January .. December)
+  %m|Month, numeric (01 .. 12) 
+  %p|AM or PM
+  %r|Time, 12-hour (hh:mm:ss followed by AM or PM)
+  %S|Seconds (00 .. 59)
+  %s|Seconds (00 .. 59)
+  %T|Time, 24-hour (hh:mm:ss)
+  %U|Week (00 .. 53), where Sunday is the first day of the week
+  %u|Week (00 .. 53), where Monday is the first day of the week
+  %V|Week (01 .. 53), where Sunday is the first day of the week; used with %X
+  %v|Week (01 .. 53), where Monday is the first day of the week; used with %x
+  %W|Weekday name (Sunday .. Saturday)
+  %w|Day of the week (0 .. 6), where Sunday is the first day of the week (1-7)
+  %X|Year for the week where Sunday is the first day of the week, numeric, four digits; used with %V
+  %x|Year for the week, where Monday is the first day of the week, numeric, four digits; used with %v
+  %Y|Year, numeric, four digits
+  %y|Year, numeric (two digits) 
+  %%|A literal % character
+  %x|x, for any x not listed above
+
+  * date_format(timestamp, format) → varchar     -- 使用format指定的格式，将timestamp格式化成字符串。
+
+  * date_parse(string, format) → timestamp       -- 按照format指定的格式，将字符串string解析成timestamp。
+
+* 抽取函数
+
+  可以使用抽取函数来抽取如下域：
+
+  Field|Description
+  YEAR|year()
+  QUARTER|quarter()
+  MONTH|month()
+  WEEK|week()
+  DAY|day()
+  DAY_OF_MONTH|day()
+  DAY_OF_WEEK|day_of_week()
+  DOW|day_of_week()
+  DAY_OF_YEAR|day_of_year()
+  DOY|day_of_year()
+  YEAR_OF_WEEK|year_of_week()
+  YOW|year_of_week()
+  HOUR|hour()
+  MINUTE|minute()
+  SECOND|second()
+  TIMEZONE_HOUR|timezone_hour()
+  TIMEZONE_MINUTE|timezone_minute()
+
+  * extract(field FROM x) → bigint      -- 从x中返回域field
