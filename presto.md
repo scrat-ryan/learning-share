@@ -616,3 +616,54 @@
   * nth_value(x, offset) → [same as input]                -- 取x排序的第offset个值
   * lead(x[, offset[, default_value]]) → [same as input]  -- 前offset个
   * lag(x[, offset[, default_value]]) → [same as input]   -- 后offset个
+
+### 数组函数和运算符
+
+* 下表运算符 `[]`【下表从1开始】
+* 连接运算符 `||`【类型必须相同】
+* 数组函数
+  * array_distinct(x) → array      -- 移除x中重复的元素并返回剩下的
+  * array_intersect(x, y) → array  -- 返回数组x和数组y的交集，结果去重
+  * array_union(x, y) → array      -- 返回数组x和数组y的并集，结果去重
+  * array_except(x, y) → array     -- 返回数组x-数组y的差集，结果去重【在x不在y】
+  * array_join(x, delimiter, null_replacement) → varchar  -- 将数组中的所有元素以delimiter指定的分隔符连接起来，null值用null_value_replacement代替，返回一个字符串
+  * array_max(x) → x               -- 返回数组x的最大值
+  * array_min(x) → x               -- 返回数组x的最小值
+  * array_position(x, element) → bigint  --  返回element首次出现再x中的位置，没有返回0
+  * array_remove(x, element) → array     --  移除x中所有等于element的元素
+  * array_sort(x) → array                --  将x重新排序排序后返回，element必须支持比较操作，null值放在最后
+  * array_sort(array(T), function(T, T, int)) -> array(T)  -- array根据给定的比较函数function排序并返回。比较函数采用两个可空的参数来表示array两个可以为空的元素。当第一个可空元素小于，等于或大于第二个可空元素时，它返回-1,0或1。如果比较函数返回其他值（包括NULL），则查询将失败并引发错误
+  * arrays_overlap(x, y) → boolean  -- 测试数组x和y是否有任何共同的非空元素。如果没有公共的非空元素，但是两个数组都包含null，则返回null
+  * cardinality(x) → bigint   -- 返回数组的基数【即长度】
+  * concat(array1, array2, ..., arrayN) → array     -- 连接数组array1，array2，...，arrayN，功能同||运算符，不去重
+  * contains(x, element) → boolean    -- 如果数组x包含element返回true, 否则返回false
+  * element_at(array(E), index) → E   -- 返回array给定的元素是否在给定的索引index。如果index> 0，则此函数提供与SQL标准下标运算符（[]）相同的功能。如果index<0，则element_at从最后到第一个的元素访问到第一个元素
+  * filter(array(T), function(T, boolean)) -> array(T)  -- 把函数function返回true的元素来构造新数组
+  * flatten(x) → array                -- `flatten(array [array [1,2,2], array [1,3,3,4]])->[1, 2, 2, 1, 3, 3, 4]`
+  * ngrams(array(T), n) -> array(array(T))  -- Returns n-grams for the array:
+
+        SELECT ngrams(ARRAY['foo', 'bar', 'baz', 'foo'], 2); -- [['foo', 'bar'], ['bar', 'baz'], ['baz', 'foo']]
+        SELECT ngrams(ARRAY['foo', 'bar', 'baz', 'foo'], 3); -- [['foo', 'bar', 'baz'], ['bar', 'baz', 'foo']]
+        SELECT ngrams(ARRAY['foo', 'bar', 'baz', 'foo'], 4); -- [['foo', 'bar', 'baz', 'foo']]
+        SELECT ngrams(ARRAY['foo', 'bar', 'baz', 'foo'], 5); -- [['foo', 'bar', 'baz', 'foo']]
+        SELECT ngrams(ARRAY[1, 2, 3, 4], 2); -- [[1, 2], [2, 3], [3, 4]]
+  * repeat(element, count) → array                -- 将element重复count次返回数组
+  * reverse(x) → array                            -- 数组反转
+  * sequence(start, stop) -> array(bigint)        -- 从start到stop生成一个整数序列，如果开始数小于等于停止数 每次自增1，否则自增 -1
+  * sequence(start, stop, step) -> array(bigint)  -- 同上，根据指定步进值自增
+  * sequence(start, stop) -> array(date)          -- 生成start日期到stop日期的日期序列，如果start日期小于或等于stop日期，则按1天递增，否则按-1天递增
+  * sequence(start, stop, step) -> array(date)    -- 生成日期序列从start到stop，通过step递增。类型step可以是INTERVAL DAY TO SECOND或者INTERVAL YEAR TO MONTH
+  * sequence(start, stop, step) -> array(timestamp) -- 生成时间戳序列，start到stop递增step。类型step可以是INTERVAL DAY TO SECOND或INTERVAL YEAR TO MONTH
+  * shuffle(x) → array                              -- 打乱数组元素
+  * slice(x, start, length) → array                 -- 数组切片，和python[::]类似，如果start为负数，则从后面开始切
+  * transform(array(T), function(T, U)) -> array(U) -- 返回一个数组，该数组是应用function到每个元素的结果：
+
+        SELECT transform(ARRAY [], x -> x + 1); -- []
+        SELECT transform(ARRAY [5, 6], x -> x + 1); -- [6, 7]
+        SELECT transform(ARRAY [5, NULL, 6], x -> COALESCE(x, 0) + 1); -- [6, 1, 7]
+        SELECT transform(ARRAY ['x', 'abc', 'z'], x -> x || '0'); -- ['x0', 'abc0', 'z0']
+        SELECT transform(ARRAY [ARRAY [1, NULL, 2], ARRAY[3, NULL]], a -> filter(a, x -> x IS NOT NULL)); -- [[1, 2], [3]]
+
+### Map函数和运算符
+
+
