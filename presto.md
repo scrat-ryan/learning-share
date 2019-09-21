@@ -518,4 +518,21 @@
   TIMEZONE_HOUR|timezone_hour()
   TIMEZONE_MINUTE|timezone_minute()
 
-  * extract(field FROM x) → bigint      -- 从x中返回域field
+  * extract(field FROM x) → bigint      -- 从x中返回域field `SELECT extract(DAY_OF_YEAR FROM current_timestamp )`
+
+* 便利的抽取函数
+
+  * day(x) / day_of_month(x)   → bigint
+  * day_of_week(x) / dow(x)    → bigint
+  * day_of_year(x) / doy(x)    → bigint
+  * hour(x)                    → bigint
+  * millisecond(x)             → bigint
+  * minute(x)                  → bigint
+  * month(x)                   → bigint
+  * quarter(x)                 → bigint
+  * second(x)                  → bigint
+  * timezone_hour(timestamp)   → bigint
+  * timezone_minute(timestamp) → bigint
+  * week(x) / week_of_year(x)  → bigint
+  * year(x)                    → bigint
+  * year_of_week(x) / yow(x)   → bigint
