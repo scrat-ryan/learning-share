@@ -589,3 +589,30 @@
   * var_pop(x) → double                          -- 返回全部输入值的总体方差
 
 ### 窗口函数
+
+  窗口函数运行在HAVING语句之后，但是运行在ORDER BY语句之前。如果想要调用窗口函数，需要使用OVER语句来指定窗口。一个窗口有3个组成部分。
+
+  * The partition specification, which separates the input rows into different partitions. This is analogous to how the GROUP BY clause separates rows into different groups for aggregate functions
+  * The ordering specification, which determines the order in which input rows will be processed by the window function
+  * The window frame, which specifies a sliding window of rows to be processed by the function for a given row. If the frame is not specified, it defaults to *RANGE UNBOUNDED PRECEDING*, which is the same as *RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW*. This frame contains all rows from the start of the partition up to the last peer of the current row
+
+* 聚合函数
+
+  所有的聚合函数加上*over*都可以变成窗口函数,聚合函数计算的是当前行所对应的所有窗口行
+
+* 排序函数
+
+  * cume_dist() → bigint        -- 小于等于当前值的行数/分组内总行数（没有order by 的话结果为1.0,否则结果<=1.0）
+  * dense_rank() → bigint       -- 排序，相同值排名相同，出现相同排名时，将不跳过相同排名号，rank值紧接上一次的rank值
+  * rank() → bigint             -- 排序，相同值排名相同，出现相同排名时，将跳过相同排名号，rank值不会紧接上一次的rank值
+  * row_number() → bigint       -- 排序，从1开始，无重复序号
+  * percent_rank() → double     -- 分组内当前行的RANK值-1/分组内总行数-1
+  * ntile(n) → bigint           -- 用于将分组数据按照顺序切分成n片，返回当前切片值
+
+* 值函数
+
+  * first_value(x) → [same as input]                      -- 首次出现
+  * last_value(x) → [same as input]                       -- 最后出现
+  * nth_value(x, offset) → [same as input]                -- 取x排序的第offset个值
+  * lead(x[, offset[, default_value]]) → [same as input]  -- 前offset个
+  * lag(x[, offset[, default_value]]) → [same as input]   -- 后offset个
