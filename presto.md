@@ -536,3 +536,56 @@
   * week(x) / week_of_year(x)  → bigint
   * year(x)                    → bigint
   * year_of_week(x) / yow(x)   → bigint
+
+### 聚合函数
+
+  聚合函数作用于一个数据集，计算出一个单独的结果。
+
+  除了count(),count_if(),max_by(),min_by()和approx_distinct(),所有的聚合函数都忽略空值，只有在没有输入或者所有输入都为空值时才会返回null。例如，sum()返回空值而不是0，avg()不会将空值值进行计数，coalesce可以将空值转换为0。
+
+* 一般聚合函数
+
+  * arbitrary(x) → [same as input]               -- 返回*x*的任意非空值（如果存在的话）
+  * array_agg(x) → array<[same as input]>        -- 将*x*的输入聚合为一个数组返回
+  * avg(x) → double                              -- 返回输入值的平均数（算术平均数）
+  * avg(time interval type) → time interval type -- 返回输入的平均间隔长度
+  * bool_and(boolean) / every(boolean) → boolean -- 如果所有输入都为true返回true，否则返回false
+  * bool_or(boolean) → boolean                   -- 如果任何一个输入值为true返回true，否则返回false
+  * checksum(x) → varbinary                      -- 返回x的校验和（顺序不敏感）
+  * count(`*`) → bigint                          -- 返回输入行的数量
+  * count(x) → bigint                            -- 返回非空输入值的数量
+  * count_if(x) → bigint                         -- 返回输入值为 TRUE 的数量，等价于count(CASE WHEN x THEN 1 END)
+  * geometric_mean(x) → double                   -- 返回输入值的几何平均数
+  * max_by(x, y) → [same as x]                   -- 返回与y的最大值关联的x的值【同行的x】
+  * max_by(x, y, n) → array<[same as x]>         -- 返回与y的前n个最大值关联的x的值的数组
+  * min_by(x, y) → [same as x]                   -- 返回与y的最小值关联的x的值【同行的x】
+  * min_by(x, y, n) → array<[same as x]>         -- 返回与y的前n个最小值关联的x的值的数组
+  * max(x) → [same as input]                     -- 返回输入值的最大值
+  * max(x, n) → array<[same as x]>               -- 返回输入值的前n个最大值
+  * min(x) → [same as input]                     -- 返回输入值的最小值
+  * min(x, n) → array<[same as x]>               -- 返回输入值的前n个最大值
+  * sum(x) → [same as input]                     -- 返回全部输入值的和
+
+* 位运算聚合函数
+
+  * bitwise_and_agg(x) → bigint                  -- 返回 x 中所有值的与操作结果，x 为数组
+  * bitwise_or_agg(x) → bigint                   -- 返回 x 中所有值的或操作结果，x 位数组
+
+* Map聚合函数
+
+  * histogram(x) -> map(K, bigint)               -- 统计每一个输入值的count数量，返回map，即统计分布直方图
+  * map_agg(key, value) -> map(K, V)             -- 以输入的key/value键值对返回一个map
+  * multimap_agg(key, value) -> map(K, array(V)) -- 创建一个多重映射的MAP变量
+
+* 近似聚合函数
+  
+  * 
+
+* 统计聚合函数
+
+  * stddev(x) / stddev_samp()  → double          -- 返回全部输入值的样本标准偏差
+  * stddev_pop(x) → double                       -- 返回全部输入值的总体标准偏差
+  * variance(x) / var_samp(x) → double           -- 返回全部输入值的样本方差
+  * var_pop(x) → double                          -- 返回全部输入值的总体方差
+
+### 窗口函数
