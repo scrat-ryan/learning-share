@@ -666,4 +666,23 @@
 
 ### Map函数和运算符
 
+* 下标运算符: []
+* Map函数
+  * cardinality(x) → bigint               -- 返回map的基数大小
+  * element_at(map(K, V), key) → V        -- 返回map中key对应的value，没有返回null
+  * map() → map<unknown, unknown>         -- 返回一个空的map
+  * map(array(K), array(V)) -> map(K, V)  -- 返回一个由指定的键/值数组构成的map
+  * 
+  * map_from_entries(array(row(K, V))) -> map(K, V)              -- key不能有重复的
+  * multimap_from_entries(array(row(K, V))) -> map(K, array(V))  -- key可以有重复的
+  * map_entries(map(K, V)) -> array(row(K, V))                   -- 以数组形式返回map中的所有实体
+  * map_concat(map1(K, V), map2(K, V), ..., mapN(K, V)) -> map(K, V) -- map
+  * map_filter(map(K, V), function(K, V, boolean)) -> map(K, V)  --
+  * map_keys(x(K, V)) -> array(K)                                -- 返回map的全部键
+  * map_values(x(K, V)) -> array(V)                              -- 返回map的全部值
+  * 
+  * 
+  * 
+
+
 
