@@ -270,12 +270,15 @@
   * split_to_map(string, entryDelimiter, keyValueDelimiter, function(k, v1, v2, res)) → map<varchar, varchar>  -- 出现相同的key，按照function确定value。 SELECT(split_to_map('a:1;b:2;a:3', ';', ':', (k, v1, v2) -> v1)); --> {a=1, b=2}
   * split_to_multimap(string, entryDelimiter, keyValueDelimiter) → (varchar, array(varchar))  -- 每一个key对应的value为一个数组  `select split_to_multimap('a:1;b:2;a:3', ';', ':') --> {a=[1, 3], b=[2]}`
   * strpos(string, substring) → bigint             -- 返回字符串中第一次出现substring的位置。从1开始，如果未找到，返回0。
+  * index(string, substring) → bigint              -- 同上
   * strpos(string, substring, instance) → bigint 
   * strrpos(string, substring) → bigint            -- 返回字符串中最后一次出现substring的位置。从1开始，如果未找到，返回0。
   * strrpos(string, substring, instance) → bigint 
   * position(substring IN string) → bigint         -- 返回substring首次出现在string中的位置,没有返回0`SELECT position('11122' in 'fsd11122ghjnk')`
-  * substr(string, start) → varchar                -- 从start位置 开始 截取字符串【起始为1】
-  * substr(string, start, length) → varchar        -- 从start位置 开始 截取字符串,截取的长度为length。
+  * substr(string, start) → varchar                -- 从start位置开始 截取字符串【起始为1】
+  * substring(string, start) → varchar             -- 同上
+  * substr(string, start, length) → varchar        -- 从start位置开始 截取字符串,截取的长度为length。
+  * substring(string, start, length) → varchar     -- 同上
   * trim(string) → varchar                         -- 去掉字符串种的空格
   * upper(string) → varchar                        -- 将字符串转换为大写
   * word_stem(word) → varchar
@@ -676,13 +679,35 @@
   * map_from_entries(array(row(K, V))) -> map(K, V)              -- key不能有重复的
   * multimap_from_entries(array(row(K, V))) -> map(K, array(V))  -- key可以有重复的
   * map_entries(map(K, V)) -> array(row(K, V))                   -- 以数组形式返回map中的所有实体
-  * map_concat(map1(K, V), map2(K, V), ..., mapN(K, V)) -> map(K, V) -- map
-  * map_filter(map(K, V), function(K, V, boolean)) -> map(K, V)  --
-  * map_keys(x(K, V)) -> array(K)                                -- 返回map的全部键
-  * map_values(x(K, V)) -> array(V)                              -- 返回map的全部值
-  * 
-  * 
-  * 
+  * map_concat(map1(K, V), map2(K, V), ..., mapN(K, V)) -> map(K, V) -- 将map1，map2...mapN做并集，同一个key的value为在最后一个concat种的map的value
+  * map_filter(map(K, V), function(K, V, boolean)) -> map(K, V)  -- 过滤map的所有键值对进行function计算结果为false的数据，true的键值对保留
 
+        SELECT map_zip_with(MAP(ARRAY[1, 2, 3], ARRAY['a', 'b', 'c']), -- {1 -> ad, 2 -> be, 3 -> cf}
+                    MAP(ARRAY[1, 2, 3], ARRAY['d', 'e', 'f']),
+                    (k, v1, v2) -> concat(v1, v2));
+        SELECT map_zip_with(MAP(ARRAY['k1', 'k2'], ARRAY[1, 2]), -- {k1 -> ROW(1, null), k2 -> ROW(2, 4), k3 -> ROW(null, 9)}
+                            MAP(ARRAY['k2', 'k3'], ARRAY[4, 9]),
+                            (k, v1, v2) -> (v1, v2));
+        SELECT map_zip_with(MAP(ARRAY['a', 'b', 'c'], ARRAY[1, 8, 27]), -- {a -> a1, b -> b4, c -> c9}
+                            MAP(ARRAY['a', 'b', 'c'], ARRAY[1, 2, 3]),
+                            (k, v1, v2) -> k || CAST(v1/v2 AS VARCHAR));
+  * map_keys(x(K, V)) -> array(K)                                   -- 返回map的全部键
+  * map_values(x(K, V)) -> array(V)                                 -- 返回map的全部值
+  * transform_keys(map(K1, V), function(K1, V, K2)) -> map(K2, V)   -- 对map的每一个键值对进行function运算之后生成新的k，value不变
+       
+       SELECT transform_keys(MAP(ARRAY[], ARRAY[]), (k, v) -> k + 1); -- {}
+       SELECT transform_keys(MAP(ARRAY [1, 2, 3], ARRAY ['a', 'b', 'c']), (k, v) -> k + 1); -- {2 -> a, 3 -> b, 4 -> c}
+       SELECT transform_keys(MAP(ARRAY ['a', 'b', 'c'], ARRAY [1, 2, 3]), (k, v) -> v * v); -- {1 -> 1, 4 -> 2, 9 -> 3}
+       SELECT transform_keys(MAP(ARRAY ['a', 'b'], ARRAY [1, 2]), (k, v) -> k || CAST(v as VARCHAR)); -- {a1 -> 1, b2 -> 2}
+       SELECT transform_keys(MAP(ARRAY [1, 2], ARRAY [1.0, 1.4]), -- {one -> 1.0, two -> 1.4}
+                             (k, v) -> MAP(ARRAY[1, 2], ARRAY['one', 'two'])[k]);
+  * transform_values(map(K, V1), function(K, V1, V2)) -> map(K, V2)  -- 对map的每一个键值对进行function运算之后生成新的value，key不变
+
+       SELECT transform_values(MAP(ARRAY[], ARRAY[]), (k, v) -> v + 1); -- {}
+       SELECT transform_values(MAP(ARRAY [1, 2, 3], ARRAY [10, 20, 30]), (k, v) -> v + k); -- {1 -> 11, 2 -> 22, 3 -> 33}
+       SELECT transform_values(MAP(ARRAY [1, 2, 3], ARRAY ['a', 'b', 'c']), (k, v) -> k * k); -- {1 -> 1, 2 -> 4, 3 -> 9}
+       SELECT transform_values(MAP(ARRAY ['a', 'b'], ARRAY [1, 2]), (k, v) -> k || CAST(v as VARCHAR)); -- {a -> a1, b -> b2}
+       SELECT transform_values(MAP(ARRAY [1, 2], ARRAY [1.0, 1.4]), -- {1 -> one_1.0, 2 -> two_1.4}
+                               (k, v) -> MAP(ARRAY[1, 2], ARRAY['one', 'two'])[k] || '_' || CAST(v AS VARCHAR));
 
 
