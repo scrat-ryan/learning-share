@@ -37,3 +37,19 @@
                                , (group_depart_id)
                                -- , ()
                              )`
+
+## 各个队列的平均查询时长，查询次数，
+    with v_ms as (
+      select
+          state
+        , array_join(resource_group_id,'.') as resource_group_id
+      from system.runtime.queries
+      where started >= current_date
+    )
+    select
+        resource_group_id
+      , state
+      , count(1) as queries
+    from v_ms
+    group by resource_group_id, state
+    order by resource_group_id, state
