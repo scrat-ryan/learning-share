@@ -53,3 +53,59 @@
     from v_ms
     group by resource_group_id, state
     order by resource_group_id, state
+
+## 获取连续数据
+
+    select
+        date_format(itv_month + interval '1' month - interval '1' day, '%Y-%m-%d') as itv_month
+    from dw.dual
+    cross join unnest(sequence(date_parse('2017-05-01', '%Y-%m-%d'), date_parse('2017-08-26', '%Y-%m-%d'), interval '1' month)) as t (itv_month)
+
+    ----------------------------------- hive -------------------------------------------
+
+    with v_tmp1 as (
+
+      select
+          itv_month
+        , split(space(itv_month),' ') as arr
+        -- , split(repeat(',', itv_month),',') as arr
+        from (select
+                  cast(floor(months_between('2019-08-26', '2017-05-01')) as integer) as itv_month
+              from dw.dual) v    
+
+    )    
+
+    , v_month_tmp as (    
+
+      select
+          case when date_format(date_add(add_months('2017-05-01', i + 1), -1), 'yyyy-MM') = date_format('2019-08-28', 'yyyy-MM') then '2019-08-28' else date_add(add_months('2017-05-01', i + 1), -1) end as etl_month
+      from v_tmp1
+      lateral view posexplode(arr) tf as i,j    
+    
+    )    
+    
+    select * from v_month_tmp
+    ;
+
+## cube
+
+    with v_tmp1 as (
+    SELECT
+      deptno,
+      job,
+      sum(sal),
+      grouping(deptno) as deptno_flag,
+      grouping(job) as job_flag
+    from dmw_test.emp
+    group by cube(deptno, job)
+    )    
+
+    select
+      t.*,
+      case
+        when deptno_flag = 0 and job_flag = 0 then 'group by deptno, job'
+        when deptno_flag = 0 and job_flag = 1 then 'group by deptno'
+        when deptno_flag = 1 and job_flag = 0 then 'group by job'
+        else '全局group by'
+      end as group_path
+    from v_tmp1 t
