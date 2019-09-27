@@ -711,3 +711,224 @@
                                (k, v) -> MAP(ARRAY[1, 2], ARRAY['one', 'two'])[k] || '_' || CAST(v AS VARCHAR));
 
 
+## SQL语法声明
+
+### schema
+
+    create schema is not exists hive.gsq_test;  
+
+    alter schema gsq_test rename to guosq_test;  
+
+    drop schema is exists gsq_test;
+
+### table
+
+    CREATE TABLE IF NOT EXISTS orders (
+      orderkey bigint,
+      orderstatus varchar,
+      totalprice double COMMENT 'Price in cents.',
+      orderdate date
+    )
+    COMMENT 'A table to keep track of orders.'  
+
+    CREATE TABLE bigger_orders (
+      another_orderkey bigint,
+      LIKE orders,
+      another_orderdate date
+    )  
+
+### analyze
+
+    analyze bigger_orders;  
+
+    analyze dw.hrms_employee_cost_month with(partitions = array[array['2019-07-18'],array['2019-07-22']]);
+     
+    prepare m1 from select * from guosq_test.orders;  
+
+    execute m1;  
+
+    prepare m2 from select * from dw.hrms_employee_zipper where start_date <= ? and end_date > ? and employee_id = ?  
+
+    execute m2 using '2019-05-01','2019-05-01',161333  
+
+### insert
+
+    INSERT INTO orders
+    SELECT * FROM new_orders;  
+
+    INSERT INTO cities VALUES (1, 'San Francisco');  
+
+    INSERT INTO cities VALUES (2, 'San Jose'), (3, 'Oakland');  
+
+    INSERT INTO nation (nationkey, name, regionkey, comment)
+    VALUES (26, 'POLAND', 3, 'no comment');
+
+### values 
+
+    VALUES
+    (1, 'a'),
+    (2, 'b'),
+    (3, 'c')  
+
+    SELECT * FROM (
+        VALUES
+            (1, 'a'),
+            (2, 'b'),
+            (3, 'c')
+    ) AS t (id, name)  
+
+    CREATE TABLE example AS
+    SELECT * FROM (
+        VALUES
+            (1, 'a'),
+            (2, 'b'),
+            (3, 'c')
+    ) AS t (id, name)
+
+### group by 
+
+    SELECT * FROM shipping;  
+
+     origin_state | origin_zip | destination_state | destination_zip | package_weight
+    --------------+------------+-------------------+-----------------+----------------
+     California   |      94131 | New Jersey        |            8648 |             13
+     California   |      94131 | New Jersey        |            8540 |             42
+     New Jersey   |       7081 | Connecticut       |            6708 |            225
+     California   |      90210 | Connecticut       |            6927 |           1337
+     California   |      94131 | Colorado          |           80302 |              5
+     New York     |      10002 | New Jersey        |            8540 |              3
+    (6 rows)
+    
+    SELECT origin_state, origin_zip, destination_state, sum(package_weight)
+    FROM shipping
+    GROUP BY GROUPING SETS (
+        (origin_state),
+        (origin_state, origin_zip),
+        (destination_state));
+    等价于
+    SELECT origin_state, NULL, NULL, sum(package_weight)
+    FROM shipping GROUP BY origin_state      
+
+    UNION ALL      
+
+    SELECT origin_state, origin_zip, NULL, sum(package_weight)
+    FROM shipping GROUP BY origin_state, origin_zip      
+
+    UNION ALL      
+
+    SELECT NULL, NULL, destination_state, sum(package_weight)
+    FROM shipping GROUP BY destination_state;
+    结果为
+     origin_state | origin_zip | destination_state | _col0
+    --------------+------------+-------------------+-------
+     New Jersey   | NULL       | NULL              |   225
+     California   | NULL       | NULL              |  1397
+     New York     | NULL       | NULL              |     3
+     California   |      90210 | NULL              |  1337
+     California   |      94131 | NULL              |    60
+     New Jersey   |       7081 | NULL              |   225
+     New York     |      10002 | NULL              |     3
+     NULL         | NULL       | Colorado          |     5
+     NULL         | NULL       | New Jersey        |    58
+     NULL         | NULL       | Connecticut       |  1562
+    (10 rows)  
+
+    SELECT origin_state, destination_state, sum(package_weight)
+    FROM shipping
+    GROUP BY GROUPING SETS (
+        (origin_state, destination_state),
+        (origin_state),
+        (destination_state),
+        ());
+    等价于
+    SELECT origin_state, destination_state, sum(package_weight)
+    FROM shipping
+    GROUP BY CUBE (origin_state, destination_state);
+    结果为
+     origin_state | destination_state | _col0
+    --------------+-------------------+-------
+     California   | New Jersey        |    55
+     California   | Colorado          |     5
+     New York     | New Jersey        |     3
+     New Jersey   | Connecticut       |   225
+     California   | Connecticut       |  1337
+     California   | NULL              |  1397
+     New York     | NULL              |     3
+     New Jersey   | NULL              |   225
+     NULL         | New Jersey        |    58
+     NULL         | Connecticut       |  1562
+     NULL         | Colorado          |     5
+     NULL         | NULL              |  1625
+    (12 rows)  
+
+    SELECT origin_state, origin_zip, sum(package_weight)
+    FROM shipping
+    GROUP BY ROLLUP (origin_state, origin_zip);
+    等价于
+    SELECT origin_state, origin_zip, sum(package_weight)
+    FROM shipping
+    GROUP BY GROUPING SETS ((origin_state, origin_zip), (origin_state), ());
+    结果为
+     origin_state | origin_zip | _col2
+    --------------+------------+-------
+     California   |      94131 |    60
+     California   |      90210 |  1337
+     New Jersey   |       7081 |   225
+     New York     |      10002 |     3
+     California   | NULL       |  1397
+     New York     | NULL       |     3
+     New Jersey   | NULL       |   225
+     NULL         | NULL       |  1625
+    (8 rows)
+
+### UNNEST
+
+    SELECT numbers, animals, n, a
+    FROM (
+      VALUES
+        (ARRAY[2, 5], ARRAY['dog', 'cat', 'bird']),
+        (ARRAY[7, 8, 9], ARRAY['cow', 'pig'])
+    ) AS x (numbers, animals)
+    CROSS JOIN UNNEST(numbers, animals) AS t (n, a);  
+    SELECT numbers, n, a
+    FROM (
+      VALUES
+        (ARRAY[2, 5]),
+        (ARRAY[7, 8, 9])
+    ) AS x (numbers)
+    CROSS JOIN UNNEST(numbers) WITH ORDINALITY AS t (n, a)  
+    SELECT numbers, n
+    FROM (
+      VALUES
+        (ARRAY[2, 5]),
+        (ARRAY[7, 8, 9])
+    ) AS x (numbers)
+    CROSS JOIN UNNEST(numbers) AS t(n)
+    
+### using
+
+    SELECT *
+    FROM table_1
+    JOIN table_2
+    ON table_1.key_A = table_2.key_A AND table_1.key_B = table_2.key_B     
+    等价于
+    SELECT *
+    FROM table_1
+    JOIN table_2
+    USING (key_A, key_B)
+    
+### show    
+    
+    show catalogs; -- 查看Presto连接的所有数据源
+    show schemas from hive; -- 列出catalog_name下的所有schema
+    show tables from hive.guosq_test; -- 查看'catalog_name.schema_name'下的所有表   
+    show columns from guosq_test.orders; -- 查看'guosq_test.orders'下的所有列
+    show create table guosq_test.orders
+    show create view view_name;
+    show functions;
+    show grants;
+    show grants on table guosq_test.orders;
+    show roles;
+    show current roles;
+    show session;
+    show stats for guosq_test.orders;
