@@ -120,34 +120,60 @@
 
 ## Hadoop的I/O操作
 
+* CRC-32(32位循环冗余校验)是常用的错误检测码，任何大小的数据输入均计算得到一个32为的整数校验和。Hadoop ChecksumFileSystem使用CRC-32计算校验和，HDFS使用一个更有效的变体CRC-32C来确保文件的完整性。
+* hadoop fs -checksum /user/guosq/start-spark-sql.sh  -- 查看某一个文件的校验和
+* Hadoop 常用的压缩方法
 
+    压缩格式|工具|算法|文件扩展名|是否可切分
+    -|-|-|-|-
+    DEFLATE|无|DEFLATE|.deflate|否
+    gzip|gzip|DEFLATE|.gz|否
+    bzip2|bzip2|bzip2|.bz2|是
+    lzo|lzop|LZO|.lzo|否
+    lz4|无|LZ4|.lz4|否
+    Snappy|无|Snappy|.nappy|否
 
+* 所有压缩算法都需要权衡空间/时间：压缩和解压缩速度更快，其代价通常是只能节省少量的空间。
+* Codec 是压缩-解压缩算法的一种实现。在hadoop中，一个对CompressionCodec接口的实现代表一个codec。下表为Hadoop的压缩codec
 
+    压缩格式|HadoopCompressionCodec
+    -|-
+    DEFLATE|org.apache.hadoop.io.compress.DefaultCodec
+    gzip|org.apache.hadoop.io.compress.GzipCodec
+    bzip2|org.apache.hadoop.io.compress.BZip2Codec
+    LZO|com.apache.compress.lzo.LzopCodec
+    LZ4|org.apache.hadoop.io.compress.Lz4Codec
+    Snappy|org.apache.hadoop.io.compress.SnappyCodec
 
+* 为了提高性能，最好使用“原生”(native)类库来实现压缩和解压缩.
+* 压缩算法的原生代码库
+    
+    压缩格式|是否有Java实现|是否有原生实现
+    -|-|-
+    DEFLATE|是|是
+    gzip|是|是
+    bzip2|是|否
+    LZO|否|是
+    LZ4|否|是
+    Snappy|否|是
 
+* 默认情况下，Hadoop会根据自身运行的平台搜索原生代码库，如果找到相应的代码库就会自动加载。
+* io.native.lib.available=false -- 禁用原生代码库
+* CodecPool--如果使用的是原生代码库并且需要在应用中执行大量压缩和解压缩操作，可以考虑使用CodecPool，它支持反复使用压缩和解压缩，以分摊创建这些对象的开销。
+![avatar](../pic/Hadoop应该使用哪种压缩格式.png)
+* mapreduce.output.fileoutputformat.compress=true,mapreduce.output.fileoutputformat.compress.codec=打算使用的压缩codec的类名
 
+    属性名称|类型|默认值|描述
+    -|-|-|-
+    mapreduce.output.fileoutputformat.compress|boolean|false|是否压缩输出
+    mapreduce.output.fileoutputformat.compress.codec|类名称|org.apache.hadoop.io.compress.DefaultCodec|map输出所用的压缩codec
+    mapreduce.output.fileoutputformat.compress.type|String|RECORD|顺序文件输出可以使用的压缩类型：NONE、RECORD或者BLOCK
 
+* 尽管MapReduce应用读/写的是未经压缩的数据，但如果对map阶段的中间输入进行压缩，也可以获得不少好处。由于map任务的输出需要写到磁盘并通过网络传输到reducer节点，所以通过使用LZO、LZ4或者Snappy这样的快速压缩方式，是可以获得性能提升的，因为需要传输的数据减少了。启用map任务输出压缩和设置压缩格式的配置属性如表所示：
 
+    属性名称|类型|默认值|描述
+    -|-|-|-
+    mapreduce.map.output.compress|boolean|false|是否对map任务输出进行压缩
+    mapreduce.map.output.compress.codec|Class|org.apache.hadoop.io.compress.DefaultCodec|map输出所用的压缩codec
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+* 
