@@ -120,7 +120,7 @@
 
 ## Hadoop的I/O操作
 
-* CRC-32(32位循环冗余校验)是常用的错误检测码，任何大小的数据输入均计算得到一个32为的整数校验和。Hadoop ChecksumFileSystem使用CRC-32计算校验和，HDFS使用一个更有效的变体CRC-32C来确保文件的完整性。
+* CRC-32(32位循环冗余校验)是常用的错误检测码，任何大小的数据输入均计算得到一个32为的整数校验和。Hadoop ChecksumFileSystem使用CRC-32计算校验和，HDFS使用一个更有效的**变体CRC-32C**来确保文件的完整性。
 * hadoop fs -checksum /user/guosq/start-spark-sql.sh  -- 查看某一个文件的校验和
 * Hadoop 常用的压缩方法
 
@@ -159,7 +159,7 @@
 
 * 默认情况下，Hadoop会根据自身运行的平台搜索原生代码库，如果找到相应的代码库就会自动加载。
 * io.native.lib.available=false -- 禁用原生代码库
-* CodecPool--如果使用的是原生代码库并且需要在应用中执行大量压缩和解压缩操作，可以考虑使用CodecPool，它支持反复使用压缩和解压缩，以分摊创建这些对象的开销。
+* CodecPool--如果使用的是原生代码库并且需要在应用中执行大量压缩和解压缩操作，可以考虑使用**CodecPool**，它支持反复使用压缩和解压缩，以分摊创建这些对象的开销。
 ![avatar](../pic/Hadoop应该使用哪种压缩格式.png)
 * mapreduce.output.fileoutputformat.compress=true,mapreduce.output.fileoutputformat.compress.codec=打算使用的压缩codec的类名
 
@@ -176,4 +176,22 @@
     mapreduce.map.output.compress|boolean|false|是否对map任务输出进行压缩
     mapreduce.map.output.compress.codec|Class|org.apache.hadoop.io.compress.DefaultCodec|map输出所用的压缩codec
 
-* 
+* 序列化(serialization)：将结构化对象转化为字节流以便在网络上传输或写到磁盘进行永久存储的过程。
+* 凡序列还(deserialization)：将字节流转回结构化对象的逆过程。
+* 序列化用于分布式数据处理的两大领域：进程间通信和永久存储。
+* 在Hadoop中，系统中多个节点上进程间的通信是通过“远程过程调用”(RPC, remote procedure call)实现的。RPC协议将消息序列化成二进制流后发送到远程节点，远程节点接着将二进制流反序列化为原始消息。通常情况下，RPC序列化格式如下：
+  * 紧凑：紧凑格式能充分利用网络带宽(数据中心最稀缺的资源)
+  * 快速：进程间通信形成了分布式系统的股价，所以需要尽量减少序列化和反序列化的性能开销，这是最基本的
+  * 可扩展：为了满足新的需求，协议不断变化。所以在控制客户端和服务器的过程中，需要直接引进相应的协议。
+  * 支持互操作：对于某些系统来说，希望能支持以不同语言写的客户端与服务器交互，所以需要设计需要一种特定的格式来满足这一需求
+* Hadoop使用的是自己的序列化格式**Writable**，它绝对紧凑、速度快，但不太容易用Java以外的语言进行扩展和使用。
+* 序列化IDL(IDL, Interface Description Language-接口定义语言)。两个比较流行的序列化框架Apache Thrift 和Google 的Protocol Buffers。
+* SequenceFile--适合作为日志文件的存储格式，也可以作为小文件的容器。HDFS和MapReduce是针对大文件优化的，所以通过SequenceFile类型将小文件包装起来，可以获得更高效率的存储和处理。Hadoop fs命令有一个-text选项可以以文本形式显示顺序文件。eg: hadoop fs -text -text number.seq | head
+* MapFile 是已经排过序的SequenceFile，它有索引，所以可以按键查找。索引自身就是一个SequenceFile，包含了map中的一小部分键(默认情况下，是每隔128个键)。由于索引能够加载进内存，因此可以提供对主数据文件的快速查找。主数据文件则是另一个SequenceFile，包含了所有的map条目，这些条目都按照键顺序进行了排序。
+* 顺序文件和map文件是Hadoop中最早的、但并不是仅有的二进制文件格式。其他有Avro数据文件。
+* 顺序文件、map文件和Avro数据文件都是面向行的格式，意味着每一行的值在文件中是连续存储的。
+* Hadoop中的第一个面向列的文件格式是Hive的RCFile(Record Columnar File)。
+
+
+
+
