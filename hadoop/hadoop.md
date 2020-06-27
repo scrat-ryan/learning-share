@@ -193,5 +193,145 @@
 * Hadoop中的第一个面向列的文件格式是Hive的RCFile(Record Columnar File)。
 
 
+## MapReduce 应用开发
+
+* 本地作业运行期使用单JVM运行一个作业，只要作业需要的所有类都在类路径(classpath)上，那么作业就可以正常执行。
+* 在分布式环境中，开始的时候作业的类必须打包成一个作业JAR文件并发送给集群。Hadoop通过搜索驱动程序的类路径自动找到该作业JAR文件，该类路径包含JobConf或Job上的setJarByClass()方法中设置的类。另一种方法，如果你想通过文件路径设置一个置顶的JAR文件，可以使用setJar()方法。JAR文件路径可以是本地的，也可以是一个HDFS文件路径。
+* mvn package -dskipTests
+* mapreduce.jobhistory.done-dir 设置作业历史文件存放目录。作业的历史文件会保存一周，随后被系统删除。历史日志包括作业、任务和尝试时间，所有这些信息以JSON格式存放在文件中。
+
+* Haoop 日志类型
+
+日志|主要对象|描述|更多信息
+-|-|-|-
+系统守护进程日志|管理员|每隔Hadoop守护进程产生一个日志文件(使用log4j)和另一个(文件合并标准输出和错误)。这些文件分别写入HADOOP_LOG_DIR环境变量定义的目录|-
+HDFS审计日志|管理员|这个日志记录所有HDFS请求，默认是关闭状态。虽然该日志存放位置可以配置，但一般写入namenode的日志|
+Mapreduce作业历史日志|用户|记录作业运行期间发生的事件(如任务完成)。集中保存在HDFS中|
+MapReduce任务日志|用户|每隔任务子进程都用log4j产生一个日志文件(乘坐syslog)，一个保存发到标准输出(stdout)数据的文件，一个保存标准错误(stderr)的文件。这些文件写入到YARN_LOG_DIR环境变量定义的目录的userlogs的子目录中|
+
+* YARN有一个日志聚合(log aggregattion)服务，可以取到已完成的应用的任务日志，并把其搬移到HDFS中，在那里任务日志被存储在一个容器文件中用于存档。默认关闭。
+* 作业调优
+
+范围|最佳实践|
+-|-|-
+mapper的数量|mapper需要运行多长时间？如果平均只运行几秒钟，则可以看是否能用更少mapper运行更长的时间，通常是一分钟左右。时间长度取决于使用的输入格式|
+reducer的数量|检查使用的reducer数目是不是超过1个。根据经验，Reduce任务应运行5分钟左右，且能生产出至少一个数据块的数据|
+combiner的数量|作业能否充分利用combiner来减少shuffle传输的数据量|
+中间值的压缩|对map输出进行压缩几乎总能使作业执行得更快|
+自定义序列|如果使用自定义的Writable对象或自定义的comparator，则必须确保已实现RawComparator|
+调整shuffle|MapReduce的shuffle过程可以对一些内存管理的参数进行调整，以弥补性能的不足|
+
+## MapReduce的工作机制
+
+![avatar](../pic/MapReduce作业的工作原理.png)
+
+* 如果作业很小，application master会将作业和自己在同一个JVM上运行。与在一个节点上顺序运行这些任务相比，当application master判断在新的容器中分配和运行任务的开销大于并行运行他们的开销流失，就会发生这一情况。这样的作业称为**uberized**，或者作为**uber任务**运行。
+* 小作业：默认情况下，小作业就是少于10个mapper且只有1个reducer且输入大小小于一个HDFS块的作业(通过设置mapreduce.job.ubertask.maxmaps、mapreduce.job.ubertask.maxreduces和mapreduce.job.ubertask.maxbytes可以改变这几个值)。必须明确启用Uber任务(对于单个作业，或者是对整个集群)，具体方法是将mapreduce.job.ubertask.enable设置为true。
+* 如果作业不适合作为uber任务运行，那么application master就会为该作业中的所有map任务和reduce任务向资源管理器请求容器。首先为Map任务发出请求，该请求优先级要高于reduce任务的请求，这时因为所有的map任务必须在reduce的排序阶段能够启动前完成。知道有5%的map任务已经完成时，为reduce任务的请求才会发出。
+* reduce任务能够在集群中任意位置运行，但是map任务的请求有着**数据本地化局限**。
+* 在作业期间，客户端每秒钟轮询一次application master以接受最新状态(轮询间隔通过mapreduce.client.progressmonitor.pollinterval设置)。客户端也可以使用Job的getStatus()方法得到一个JobStatus的实例，后者包括作业的所有状态信息。
+
+![avatar](../pic/状态更新在MapReduce系统中的传递流程.png)
+
+* Hadoop 中的失败分类：任务、application master、节点管理器和资源管理器都可能导致失败。其中，任务失败分为：**map任务或reduce任务重的用户代码抛出运行异常、任务JVM突然退出、任务长时间挂起**。
+* application master 被告知一个任务尝试失败后，将重新调度该任务的执行。application master会试图避免在以前失败过的节点管理器上重新调度该任务。此外，如果一个任务失败过4次，将不会再重试。这个值是可以设置的：对于map任务，通过mapreduce.map.maxattempts属性设置；对于reduce任务，通过mapreduce.reduce.maxattempts属性控制。如果某些作业允许一部分任务失败，则可以为作业设置在不处罚作业失败的情况下允许任务失败的最大百分比，map任务为mapreduce.map.failures.maxpercent，reduce任务为mapreduce.reduce.failures.maxpercent。
+* 被中止(killed)的任务尝试不会被计入任务运行尝试次数，因为尝试被中止并不是任务的过错。
+* YARN中的应用程序在运行失败的时候有几次尝试机会，默认值为2，由mapreduce.am.max-attempts属性控制
+* YARN对集群上运行的YARN application master的最大尝试次数加以了限制，单个的应用程序不可以超过这个限制，默认值为2，有yarn.resourcemanager.am.max-attempts属性控制
+* 如果节点管理器由于崩溃或运行非常缓慢而失败，就会停止向资源管理器发送信息遨信息(或发送频率很低)。如果10分钟内(可以通过属性yarn.resourcemanager.nm.liveness-monitor.expiry-interval-ms设置，以毫秒为单位)没有收到一条心跳信息，资源管理器将会通知停止发送心跳信息的节点管理器，并且将其从自己的节点池中移除以调度启用容器。如果应用程序的失败次数过高，那么节点管理器可能会被拉黑，即使节点管理自己并没有失败过。有application master管理黑名单，对于MapReduce，如果一个节点管理器上有超过三个任务失败，application master就会尽量将任务调度到不同的节点上，用户可以通过作业属性mapreduce.job.maxtaskfailures.per.tracker设置该阈值。
+* 资源管理器失败是非常严重的问题，没有资源管理器，作业和任务容器将无法启动。在默认的配置中，资源管理器是个单点故障，这时由于在机器失败的情况下(尽管不太可能发生)，所有运行的作业都失败且不能被恢复。
+* MapReduce确保每隔reducer的输入都是按键排序的。系统执行排序、将map输出作为输入传给reducer的过程称为shuffle。
+* map任务以**缓冲的方式写到内存并出于效率的考虑进行预排序**。
+
+![avatar](../pic/MapReduce的shuffle和排序.png)
+
+
+* 每个map任务都有一个唤醒内存缓冲区用于存储任务输出。在默认情况下，缓冲区的大小为100MB，值由mapreduce.task.io.sort.mb属性来控制。一旦缓冲内容打到阈值(mapreduce.map.sort.spill.percent，默认为0.80，或80%)，一个后台县城便开始把内容溢出(spill)到磁盘。在溢出写到磁盘过程中，map输出继续写到缓冲区，但如果在此期间缓冲区被填满，map会被阻塞知道写磁盘完成。溢出写过程按轮询方式将缓冲区中的内容写到mapreduce.cluster.local.dir属性在作业特定子目录下制定的目录中。
+* 每次内存缓冲区达到溢出阈值，就会新建一个衣橱文件(spill file)，因此在map任务写完其最后一个输出记录之后，会有几个溢出文件。在任务完成之前，溢出文件被合并成一个已分区且已排序的输出文件。配置属性mapreduce.task.io.sort.factor控制着一次最多能合并多少流，默认值是10。
+* 如果至少存在3个溢出文件(通过mapreduce.map.combine.minspills属性设置)时，则combiner就会在输出文件写到磁盘之前在此运行。如果只有1或者2个溢出文件，那么犹豫map输出规模减少，因而不值得调用combiner带来的开销，因此不会为该map输出在此运行combiner。
+* 在map输出写到磁盘的过程中，可以对写数据进行压缩，这样写磁盘的速度更快，节约磁盘空间，并减少传给reducer的数据量。在默认情况下，输出是不压缩的，可以通过设置mapreduce.map.output.compress=true开启。
+* map端的调优属性(以作业为单位)
+
+  属性名称|类型|默认值|说明
+  -|-|-|-
+  mapreduce.task.io.sort.mb|int|100|排序map输出时所使用的内存缓冲区的大小，以兆字节为单位
+  mapreduce.map.sort.spill.percent|float|0.80|map输出内存缓冲和用来开始磁盘溢出写过程的记录边界索引，这两者使用比例的阈值
+  mapreduce.task.io.sort.factor|int|10|排序文件时，一次最多合并的流数。这个属性也在reduce中使用。将此值增加到100是很常见的
+  mapreduce.map.combine.minspills|int|3|运行combiner所需的最少溢出文件书(如果已指定combiner)
+  mapreduce.map.output.compress|Boolean|false|是否压缩map输出
+  mapreduce.map.output.compress.codec|Class name|org.apache.hadiio.io.compress.DefaultCodec|用于map输出的压缩编解码器
+  mapreduce.shuflle.max.threads|int|0|每个节点管理器的工作线程数，用于将map输出到reducer。这时集群范围的设置，不能由单个作业设置。0表示使用Netty默认值，即两倍于可用的处理器数
+  
+  总的原则--给shuffle过程尽量多提供内存空间。map函数和reduce函数在保证能够得到足够内存的条件下，应尽量少用内存，不该无限使用内存（eg，应避免在map中堆积数据）。属性mapred.child.java.opts控制运行map任务和reduce任务的JVM内存大小。在任务节点上的内存应该尽可能设置的大些。
+
+* 在map端，可以通过避免多次溢出写磁盘来获得最佳性能，一次是最佳情况。如果能估算map输出大小，就可以合理地设置mapreduce.task.io.sort.\*属性来尽可能减少溢出写的次数。
+* 在reduce端，中间数据全部驻留在内存是，就能获得最佳性能。在默认情况下，这是不可能发生的，因为所有内存一般都预留给reduce函数。但如果reduce函数的内存需求不大，把mapreduce.reduce.merge.inem.threhold设置为0，把mapreduce.reduce.input.buffer.percent设置为1.0(或一个更低的值)就可以提升性能。
+
+* map端的调优属性
+
+  属性名称|类型|默认值|说明
+  -|-|-|-
+  mapreduce.reduce.shuffle,parallelcopies|int|5|用于把map输出复制到reducer的线程数
+  mapreduce.reduce.shuffle.maxfetchfailures|int|10|在声明失败之前，reducer获取一个map输出所花的最大时间
+  mapreduce.task.io.sort.factor|int|10|排序文件时一次最多合并的流的数量。这个属性也在map端使用
+  mapreduce.reduce.input.buffer.percent|float|0.70|在shuffle的复制阶段，分配给map输出的缓冲区占对空间的百分比
+  mapreduce.reduce.shuffle.merge.percent|float|0.66|map输出缓冲区(由mapred.job.shuffle.input.buffer.percent定义)的阈值使用比例，用于启动合并输出和磁盘溢出写的过程
+  mapreduce.reduce.merge.inmem.threshold|int|1000|启动合并输出和磁盘溢出写过程的map输出的阈值数。0或更小的数意味着没有阈值限制，溢出写行为由mapreduce.reduce.shuffle.merge.percent单独控制
+  mapreduce.reduce.input.buffer.percent|float|0.0|在reduce过程中，在内存中保存map输出的空间占整个堆空间的比例。reduce阶段开始时，内存中的map输出大小不能大于这个值。默认情况下，在reduce任务开始之前，所有map输出都合并到磁盘上，以便为reducer提供尽可能多的内存。然而，如果reducer需要的内存较少，可以增加此值来最小化访问磁盘的次数
+
+* 任务执行环境的属性
+  
+  属性名称|类型|默认值|范例
+  -|-|-|-
+  mapreduce.job.id|string|作业ID|job_1592991876492_42244
+  mapreduce.task.id|string|任务ID|task_1592991876492_42244_m_000000、task_1592991876492_42244_m_000001(map task)、task_1592991876492_42244_r_000000(reduce task)
+  mapreduce.task.attemp.id|string|任务尝试ID|attempt_2008112011300003_m_000003_0
+  mapreduce.task.partition|int|作业中任务的索引|3
+  mapreduce.task.ismap|boolean|此任务是否是map任务|true
+
+* 推测执行--Hadoop不会尝试诊断或修复执行慢的任务，相反，在一个惹怒运行比预期慢的时候，它会尽量检测，并启动另一个相同的任务作为备份，这就是所谓的任务的“推测执行”(speculative execution)。如果原任务在推测任务前完成，推测任务就会被中止；同样，如果推测任务先完成，那么原任务就会被中止。推测执行是一种优化措施，它并不能使作业的运行更可靠。在默认情况下，推测执行是启用的。可以基于集群或基于每个作业，单独为map任务和reduce任务启用或禁用该功能。相关属性如下:
+
+  属性名称|类型|默认值|描述
+  -|-|-|-
+  mapreduce.map.speculative|boolean|true|如果任务运行变慢，该属性决定着是否要启动map任务的另外一个实例
+  mapreduce.reduce.speculative|boolean|true|如果任务运行变慢，该属性决定着是否要启动reduce任务的另外一个实例
+  Yarn.app.mapreduce.am.job.estimator.class|Class|Org.apache.hadoop.mapreduce.v2.app.speculate.|Speculator类实现推测执行策略(只针对MapReduce2)
+  Yarn.app.mapreduce.am.job.estimator.class|Class|Org.apache.hadoop.mapreduce.v2.app.speculate.|Speculator实例使用的TaskruntimeEstimator的实现，提供任务运行时间的估计值(只针对MapReduce2)
+
+## MapReduce 的类型与格式
+
+*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
