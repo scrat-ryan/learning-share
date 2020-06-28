@@ -202,12 +202,12 @@
 
 * Haoop 日志类型
 
-日志|主要对象|描述|更多信息
--|-|-|-
-系统守护进程日志|管理员|每隔Hadoop守护进程产生一个日志文件(使用log4j)和另一个(文件合并标准输出和错误)。这些文件分别写入HADOOP_LOG_DIR环境变量定义的目录|-
-HDFS审计日志|管理员|这个日志记录所有HDFS请求，默认是关闭状态。虽然该日志存放位置可以配置，但一般写入namenode的日志|
-Mapreduce作业历史日志|用户|记录作业运行期间发生的事件(如任务完成)。集中保存在HDFS中|
-MapReduce任务日志|用户|每隔任务子进程都用log4j产生一个日志文件(乘坐syslog)，一个保存发到标准输出(stdout)数据的文件，一个保存标准错误(stderr)的文件。这些文件写入到YARN_LOG_DIR环境变量定义的目录的userlogs的子目录中|
+    日志|主要对象|描述|更多信息
+    -|-|-|-
+    系统守护进程日志|管理员|每隔Hadoop守护进程产生一个日志文件(使用log4j)和另一个(文件合并标准输出和错误)。这些文件分别写入HADOOP_LOG_DIR环境变量定义的目录|
+    HDFS审计日志|管理员|这个日志记录所有HDFS请求，默认是关闭状态。虽然该日志存放位置可以配置，但一般写入namenode的日志|
+    Mapreduce作业历史日志|用户|记录作业运行期间发生的事件(如任务完成)。集中保存在HDFS中|
+    MapReduce任务日志|用户|每隔任务子进程都用log4j产生一个日志文件(乘坐syslog)，一个保存发到标准输出(stdout)数据的文件，一个保存标准错误(stderr)的文件。这些文件写入到YARN_LOG_DIR环境变量定义的目录的userlogs的子目录中|
 
 * YARN有一个日志聚合(log aggregattion)服务，可以取到已完成的应用的任务日志，并把其搬移到HDFS中，在那里任务日志被存储在一个容器文件中用于存档。默认关闭。
 * 作业调优
@@ -252,15 +252,15 @@ combiner的数量|作业能否充分利用combiner来减少shuffle传输的数�
 * 在map输出写到磁盘的过程中，可以对写数据进行压缩，这样写磁盘的速度更快，节约磁盘空间，并减少传给reducer的数据量。在默认情况下，输出是不压缩的，可以通过设置mapreduce.map.output.compress=true开启。
 * map端的调优属性(以作业为单位)
 
-  属性名称|类型|默认值|说明
-  -|-|-|-
-  mapreduce.task.io.sort.mb|int|100|排序map输出时所使用的内存缓冲区的大小，以兆字节为单位
-  mapreduce.map.sort.spill.percent|float|0.80|map输出内存缓冲和用来开始磁盘溢出写过程的记录边界索引，这两者使用比例的阈值
-  mapreduce.task.io.sort.factor|int|10|排序文件时，一次最多合并的流数。这个属性也在reduce中使用。将此值增加到100是很常见的
-  mapreduce.map.combine.minspills|int|3|运行combiner所需的最少溢出文件书(如果已指定combiner)
-  mapreduce.map.output.compress|Boolean|false|是否压缩map输出
-  mapreduce.map.output.compress.codec|Class name|org.apache.hadiio.io.compress.DefaultCodec|用于map输出的压缩编解码器
-  mapreduce.shuflle.max.threads|int|0|每个节点管理器的工作线程数，用于将map输出到reducer。这时集群范围的设置，不能由单个作业设置。0表示使用Netty默认值，即两倍于可用的处理器数
+    属性名称|类型|默认值|说明
+    -|-|-|-
+    mapreduce.task.io.sort.mb|int|100|排序map输出时所使用的内存缓冲区的大小，以兆字节为单位
+    mapreduce.map.sort.spill.percent|float|0.80|map输出内存缓冲和用来开始磁盘溢出写过程的记录边界索引，这两者使用比例的阈值
+    mapreduce.task.io.sort.factor|int|10|排序文件时，一次最多合并的流数。这个属性也在reduce中使用。将此值增加到100是很常见的
+    mapreduce.map.combine.minspills|int|3|运行combiner所需的最少溢出文件书(如果已指定combiner)
+    mapreduce.map.output.compress|Boolean|false|是否压缩map输出
+    mapreduce.map.output.compress.codec|Class name|org.apache.hadiio.io.compress.DefaultCodec|用于map输出的压缩编解码器
+    mapreduce.shuflle.max.threads|int|0|每个节点管理器的工作线程数，用于将map输出到reducer。这时集群范围的设置，不能由单个作业设置。0表示使用Netty默认值，即两倍于可用的处理器数
   
   总的原则--给shuffle过程尽量多提供内存空间。map函数和reduce函数在保证能够得到足够内存的条件下，应尽量少用内存，不该无限使用内存（eg，应避免在map中堆积数据）。属性mapred.child.java.opts控制运行map任务和reduce任务的JVM内存大小。在任务节点上的内存应该尽可能设置的大些。
 
@@ -269,41 +269,90 @@ combiner的数量|作业能否充分利用combiner来减少shuffle传输的数�
 
 * map端的调优属性
 
-  属性名称|类型|默认值|说明
-  -|-|-|-
-  mapreduce.reduce.shuffle,parallelcopies|int|5|用于把map输出复制到reducer的线程数
-  mapreduce.reduce.shuffle.maxfetchfailures|int|10|在声明失败之前，reducer获取一个map输出所花的最大时间
-  mapreduce.task.io.sort.factor|int|10|排序文件时一次最多合并的流的数量。这个属性也在map端使用
-  mapreduce.reduce.input.buffer.percent|float|0.70|在shuffle的复制阶段，分配给map输出的缓冲区占对空间的百分比
-  mapreduce.reduce.shuffle.merge.percent|float|0.66|map输出缓冲区(由mapred.job.shuffle.input.buffer.percent定义)的阈值使用比例，用于启动合并输出和磁盘溢出写的过程
-  mapreduce.reduce.merge.inmem.threshold|int|1000|启动合并输出和磁盘溢出写过程的map输出的阈值数。0或更小的数意味着没有阈值限制，溢出写行为由mapreduce.reduce.shuffle.merge.percent单独控制
-  mapreduce.reduce.input.buffer.percent|float|0.0|在reduce过程中，在内存中保存map输出的空间占整个堆空间的比例。reduce阶段开始时，内存中的map输出大小不能大于这个值。默认情况下，在reduce任务开始之前，所有map输出都合并到磁盘上，以便为reducer提供尽可能多的内存。然而，如果reducer需要的内存较少，可以增加此值来最小化访问磁盘的次数
+    属性名称|类型|默认值|说明
+    -|-|-|-
+    mapreduce.reduce.shuffle,parallelcopies|int|5|用于把map输出复制到reducer的线程数
+    mapreduce.reduce.shuffle.maxfetchfailures|int|10|在声明失败之前，reducer获取一个map输出所花的最大时间
+    mapreduce.task.io.sort.factor|int|10|排序文件时一次最多合并的流的数量。这个属性也在map端使用
+    mapreduce.reduce.input.buffer.percent|float|0.70|在shuffle的复制阶段，分配给map输出的缓冲区占对空间的百分比
+    mapreduce.reduce.shuffle.merge.percent|float|0.66|map输出缓冲区(由mapred.job.shuffle.input.buffer.percent定义)  的阈值使用比例，用于启动合并输出和磁盘溢出写的过程
+    mapreduce.reduce.merge.inmem.threshold|int|1000|启动合并输出和磁盘溢出写过程的map输出的阈值数。0或更小的数意味着没有阈值限制，溢出写行为由mapreduce.reduce.shuffle.merge.percent单独控制
+    mapreduce.reduce.input.buffer.percent|float|0.0|在reduce过程中，在内存中保存map输出的空间占整个堆空间的比例。reduce阶段开始时，内存中的map输出大小不能大于这个值。默认情况下，在reduce任务开始之前，所有map输出都合并到磁盘上，以便为reducer提供尽可能多的内存。然而，如果reducer需要的内存较少，可以增加此值来最小化访问磁盘的次数
 
 * 任务执行环境的属性
   
-  属性名称|类型|默认值|范例
-  -|-|-|-
-  mapreduce.job.id|string|作业ID|job_1592991876492_42244
-  mapreduce.task.id|string|任务ID|task_1592991876492_42244_m_000000、task_1592991876492_42244_m_000001(map task)、task_1592991876492_42244_r_000000(reduce task)
-  mapreduce.task.attemp.id|string|任务尝试ID|attempt_2008112011300003_m_000003_0
-  mapreduce.task.partition|int|作业中任务的索引|3
-  mapreduce.task.ismap|boolean|此任务是否是map任务|true
+    属性名称|类型|默认值|范例
+    -|-|-|-
+    mapreduce.job.id|string|作业ID|job_1592991876492_42244
+    mapreduce.task.id|string|任务ID|task_1592991876492_42244_m_000000、task_1592991876492_42244_m_000001(map task)、task_1592991876492_42244_r_000000(reduce task)
+    mapreduce.task.attemp.id|string|任务尝试ID|attempt_2008112011300003_m_000003_0
+    mapreduce.task.partition|int|作业中任务的索引|3
+    mapreduce.task.ismap|boolean|此任务是否是map任务|true
 
 * 推测执行--Hadoop不会尝试诊断或修复执行慢的任务，相反，在一个惹怒运行比预期慢的时候，它会尽量检测，并启动另一个相同的任务作为备份，这就是所谓的任务的“推测执行”(speculative execution)。如果原任务在推测任务前完成，推测任务就会被中止；同样，如果推测任务先完成，那么原任务就会被中止。推测执行是一种优化措施，它并不能使作业的运行更可靠。在默认情况下，推测执行是启用的。可以基于集群或基于每个作业，单独为map任务和reduce任务启用或禁用该功能。相关属性如下:
 
-  属性名称|类型|默认值|描述
-  -|-|-|-
-  mapreduce.map.speculative|boolean|true|如果任务运行变慢，该属性决定着是否要启动map任务的另外一个实例
-  mapreduce.reduce.speculative|boolean|true|如果任务运行变慢，该属性决定着是否要启动reduce任务的另外一个实例
-  Yarn.app.mapreduce.am.job.estimator.class|Class|Org.apache.hadoop.mapreduce.v2.app.speculate.|Speculator类实现推测执行策略(只针对MapReduce2)
-  Yarn.app.mapreduce.am.job.estimator.class|Class|Org.apache.hadoop.mapreduce.v2.app.speculate.|Speculator实例使用的TaskruntimeEstimator的实现，提供任务运行时间的估计值(只针对MapReduce2)
-
+    属性名称|类型|默认值|描述
+    -|-|-|-
+    mapreduce.map.speculative|boolean|true|如果任务运行变慢，该属性决定着是否要启动map任务的另外一个实例
+    mapreduce.reduce.speculative|boolean|true|如果任务运行变慢，该属性决定着是否要启动reduce任务的另外一个实例
+    Yarn.app.mapreduce.am.job.estimator.class|Class|Org.apache.hadoop.mapreduce.v2.app.speculate.DefaultSpeculator|Speculator类实现推测执行策略(  只针对MapReduce2)
+    Yarn.app.mapreduce.am.job.estimator.class|Class|Org.apache.hadoop.mapreduce.v2.app.speculate.LegacyTaskRuntimeEstimator|Speculator实例使用的TaskruntimeEstimator的实现，提供任务运行时间的估计值(只针对MapReduce2)
+  
 ## MapReduce 的类型与格式
 
-*
+* Hadoop的MapReduce中，map函数和reduce函数遵循如下常规格式：
+    
+        map:(K1, V1) -> list(K2, V2)
+        reduce:(K2, list(V2)) -> list(K3, V3)
 
+* 一般来说，map函数输入的键/值类型(K1和V1)不同于输出类型(K2和V2)。然而，reduce函数的输入类型必须与map函数的输出类型相同，但reduce函数的输出类型(K3和V3)可以不同于输入类型。
+* 如果使用combiner函数，它与reduce函数(是Reducer的一个实现)的形式相同，不同之处是它的输出类型是中间的键值对类型(K2和V2)，这些中间值可以输入reduce函数:
 
+        map:(K1, V1) -> list(K2, V2)
+        combiner:(K2, list(V2)) -> list(K2, V2)
+        reduce:(K2, list(V2)) -> list(K3, V3)
 
+* combiner函数与reduce函数通常是一样的，在这种情况下，K3与K2类型相同，V3与V2类型相同
+* partition函数对中间结果的键-值对(K2和V2)进行处理，并且返回一个分区索引(partition index。实际上，分区有键单独决定(值被忽略)。
+* reducer增大能缩短reduce过程，但如果太大则会小文件过多，因此，合理选择reducer的个数很重要。一条经验法则是：目标reducer保持在每个运行5分钟左右、且产生至少一个HDFS块的输出比较合适。
+* 分片大小的计算公式: max(mininumSize, min(maximumSize, blocksize))，在默认的情况下: minimumSize < blockSize < maximumSize
+* 控制分片大小举例
+
+    最小分片大小|最大分片大小|块的大小|分片大小|说明
+    -|-|-|-|-
+    1(默认值)|Long.MAX_VALUE(默认值)|128MB(默认值)|256MB|默认情况下，分片大小与块大小相同
+    1(默认值)|Long.MAX_VALUE(默认值)|256MB|256MB|增加分片大小最自然的方法是提供更大的HDFS块，通过dfs.blocksize或在构建文件时以单个文件为基础进行设置
+    256MB|Long.MAX_VALUE(默认值)|128MB(默认值)|256MB|通过使最小分片大小的值大于块大小的方法来增大分片大小，但代价是增加了本地操作
+    1(默认值)|64MB|128MB(默认值)|64MB|通过使最大分片大小的值小于块大小的方法来减少分片大小
+
+* 保证文件不被切分的两种方法。
+    * 增加最小分片大小，将它设置成大于要处理的最大文件大小。把它设置为最大值long.MAX_VALUE即可(最简单但不怎么漂亮)。
+    * 使用FileInputFormat具体子类，并且重写isSplitable()方法，把返回值设置为false。
+* InputFormat类的层次结构
+    ![avatar](../pic/InputFormat类的层次结构.png)
+* 文本输入
+    * TextInputFormat是默认的InputFormat。每条记录是一行输入。键是LongWritable类型，存储改行在整个文件中的字节偏移量。值是这行的内容，不包含任何行终止符(换行符和回车符)，它被打包成一个Text对象。
+    * KeyValueTextInputFormat
+    * NLineInputFormat
+    * XML
+* 二进制输入
+    * SequenceFileInputFormat
+    * SequenceFileAsTextInputFormat
+    * SequenceFileAsBinaryInputFormat
+    * FixedLengthInputFormat 
+* 数据库输入
+* OutputFormat类的层次结构
+    ![avatar](../pic/OutFormat类的层次结构.png)
+* 文本输出
+    * TextOutputFormat是默认的OutputFormat，它把每条记录写成文本行。它的键和值可以是任意类型，因为TextOutputFormat调用toString()方法把他们转换为字符串。每个键-值对由制表符进行分割，有mapreduce.output.textoutputformat.separator属性控制。对应的输入格式是KeyValueTextInputFormat,它通过可配置的分隔符将键-值对文本行分隔。
+    * 
+* 二进制输出
+    * SequenceFileOutputFormat
+    * SequenceFileAsBinaryOutputFormat
+    * MapFileOutputFormat 
+* 多个输出
+* 延迟输出(LazyOutputFormat):FileOutputFormat的子类会产生输出文件(part--nnnnn)，即使文件是空的。如果想要不创建空文件，则使用LazyOutputFormat可以保证指定分区第一条记录输出时才真正创建文件。
+* 数据库输出
 
 
 
