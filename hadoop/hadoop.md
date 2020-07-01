@@ -351,9 +351,37 @@ combiner的数量|作业能否充分利用combiner来减少shuffle传输的数�
     * SequenceFileAsBinaryOutputFormat
     * MapFileOutputFormat 
 * 多个输出
-* 延迟输出(LazyOutputFormat):FileOutputFormat的子类会产生输出文件(part--nnnnn)，即使文件是空的。如果想要不创建空文件，则使用LazyOutputFormat可以保证指定分区第一条记录输出时才真正创建文件。
+* 延迟输出(LazyOutputFormat):FileOutputFormat的子类会产生输出文件(part--nnnnn)，即使文件是空的。如果想要不创建空文件，则使用LazyOutputFormat可以保证**指定分区第一条记录输出时才真正创建文件**。
 * 数据库输出
 
+## MapReduce 的特性
+
+* 计数器
+    * 内置计数器: Hadoop为每个作业维护若干内置计数器，以描述多想指标。
+        
+        组别|名称/类别|维护对象
+        -|-|-
+        MapReduce任务计数器|org.apache.hadoop.mapreduce.TaskCounter|关联任务维护，并定期发送给application master
+        文件系统计数器|org.apache.hadoop.mapreduce.FileSystemCounter|
+        FileInputFormat计数器|org.apache.hadoop.mapreduce.lib.input.FileInputFormatCounter|
+        FileOutputFormat计数器|org.apache.hadoop.mapreduce.lib.output.FileOutputFormatCounter|
+        作业计数器|org.apache.hadoop.mapreduce.JobCounter|由application master维护
+
+    * 用户定义的Java计数器
+    * 用户自定义的Streaming计数器
+* 排序
+    * 部分排序
+    * 全排序
+    * 辅助排序
+* 连接
+    * map端连接[连接操作由map端执行]
+    * reduce端连接[连接操作由reduce端执行]
+* 边数据分布["边数据"(side data)是作业所需的额外的只读数据，以辅助处理主数据集]
+    * 利用JonConf来配置作业
+    * 分布式缓存
+* MapReduce常用库类
+
+## 构建Hadoop集群
 
 
 
