@@ -383,14 +383,128 @@ combiner的数量|作业能否充分利用combiner来减少shuffle传输的数�
 
 ## 构建Hadoop集群
 
+* Hadoop配置文件
 
+    文件名称|格式|描述
+    -|-|-
+    hadoop-env.sh|Bash脚本|脚本中要用到的环境变量，以运行Hadoop
+    mapred-env.sh|Bash脚本|脚本中要用到的环境变量，以运行MapReduce(覆盖hadoop-env.sh中设置的变量)
+    yarn-env.sh|Bash脚本|脚本中要用到的环境变量，以运行YARN(覆盖hadoop-env.sh中设置的变量)
+    core-site.xml|Hadoop配置XML|Hadoop Core的配置项，例如HDFS、MapReduce和YARN常用的I/O设置等
+    hdfs-site.xml|Hadoop配置XML|Hadoop守护进程的配置项，包括namenode、辅助namenode和datanode等
+    mapred-site.xml|Hadoop配置XML|MapReduce守护进程的配置项，包括作业历史服务器
+    yarn-site.xml|Hadoop配置XML|YARN守护进程的配置项，把偶哦资源管理器、web应用代理服务器和节点管理器
+    salves|纯文本|运行datanode和节点管理器的机器列表(每行一个)
+    hadoop-metrics2.properties|Java属性|控制如何在Hadoop上发布度量的属性
+    log4j.properties|Java属性|系统日志文件、namenode审计日志、任务JVM进程的任务日志的属性
+    hadoop-policy.xml|Hadoop配置XML|安全模式下运行Hadoop时的访问控制列表的配置项
 
+* 根据经验保守估计需要为每1百万个数据块在namenode分配1000MB内存空间
+* HDFS守护进程的关键属性
+    属性名称|类型|默认值|说明
+    -|-|-|-
+    fs.defaultFS|URI|file:///|默认文件系统。URI定义主机名称和namenode的RPC服务器工作的端口号，默认值是8020.本属性保存在core-site.xml中
+    dfs.namenode.name.dir|以逗号分隔的目录名称|file://${hadoop.tmp.dir}/dfs/name|namenode存储永久性的元数据的目录列表。namenode在列表上的各个目录中均存放相同的元数据文件
+    dfs.datanode.data.dir|以逗号分隔的目录名称|file://${hadoop.tmp.dir}/dfs/data|datanode存放数据块的目录列表。各个数据块分别存放于某一个目录中
+    dfs.namenode.checkpoint.dir|以逗号分隔的目录名称|file://${hadoop.tmp.dir}/dfs/namesecondary|辅助namenode存放检查点的目录列表。在所列每个目录中均存放一份检查点文件的副本。
+* YARN守护进程的关键属性
 
+    属性名称|类型|默认值|说明
+    -|-|-|-
+    yarn.resourcemanager.hostname|主机名|0.0.0.0|运行资源管理器的机器主机名。以下缩写为${y.rm.hostname}
+    yarn.resourcemanager.address|主机名和端口|${y.rm.hostname}:8032|运行资源管理器的RPC服务器的主机名和端口
+    yarn.nodemanager.local-dirs|逗号分隔的目录名称|${hadoop.tmp.dir}/nm-local-dir|目录列表，节点管理器允许容器将中间数据存于其中。当应用结束时，数据被清除
+    yarn.nodemanager.aux-services|逗号分隔的服务名称||节点管理器运行的附加任务列表。每项服务由属性yarn.nodemanager.auxservices.servicename.class所定义的类实现。默认情况下，不置顶附加服务
+    yarn.nodemanager.resource.memory-mb|int|8192|节点管理器运行的容器可以分配到的物理内存容量(单位是MB)
+    yarn.nodemanager.vmem-pmem-tatio|float|2.1|容器所占的虚拟内存和物理内存之比。该值指示了虚拟内存的使用可以超过所分配内存的量
+    yarn.nodemanager.resource.cpuvcores|int|8|节点管理器运行的容器可以分配到的CPU数目
 
+* 控制单个作业设置内存选项的两种方法：
 
+    * 控制YARN分配的容器大小
+    * 控制容器中运行的Java进程堆大小
 
+* MapReduce作业内存属性(由客户端设置)
 
+    属性名称|类型|默认值|说明
+    -|-|-|-
+    mapreduce.map.memory.mb|int|1024|map容器所使用的内存容量
+    mapreduce.reduce.memory.mb|int|1024|reduce容器所使用的内存容量
+    mapred.child.java.opts|String|-Xmx200m|JVM选项，用于启动运行map和reduce任务的容器进程。除了用于设置内存，该属性还包括JVM属性设置，以支持调优
+    mapreduce.map.java.opts|String|-Xmx200m|JVM选项，针对运行map任务的子进程
+    mapreduce.reduce.java.opts|String|-Xmx200m|JVM选项，针对运行reduce任务的子进程
 
+* mapreduce.map.cup.vcores---MapReduce作业控制分配给map容器的核数量
+* mapreduce.reduce.cup.vcores---MapReduce作业控制分配给reduce容器的核数量
+
+* RPC服务器的属性
+
+    属性名称|默认值|说明
+    -|-|-
+    fs.defaultFS|file:///|设为一个HDFS的URI时，改属性描述namenode的RPC服务器地址和端口。如果不置顶，则默认的端口号是8020
+    dfs.namenode.rpc-bind-host||namenode的RPC服务器将绑定的地址。如果没有设置()默认情况，绑定地址有fs.defaultFS决定。可以设为0.0.0.0，使得namenode可以监听所有接口
+    dfs.datanode.ipc.address|0.0.0.0:50020|datanode的RPC服务器地址和端口
+    apreduce.jobhistory.address|0.0.0.0:10020|作业历史服务器的RPC服务器地址和端口，客户端(一般在集群外部)用于查询作业历史
+    mapreduce.jobhistory.bind-host||作业历史服务器的RPC和HTTP服务器将绑定的地址
+    yarn.resourcemanager.hostname|0.0.0.0|资源管理器运行所在的机器主机名。一下缩写为${y.rm.hostname}
+    yarn.resourcemanager.bind-host||资源管理器的RPC和HTTP服务器将绑定的地址
+    yarn.resourcemanager.address|${y.rm.hostname}:8032|源管理器的RPC服务器地址和端口。客户端(一般在集群外部)通过它于资源管理器通信
+    yarn.resourcemanager.admin.address|${y.rm.hostname}:8033|源管理器的admin RPC服务器地址和端口。admin客户端(一般在集群外部)通过它于资源管理器通信
+    yarn.resourcemanager.scheduler.address|${y.rm.hostname}:8030|源管理器的调度器 RPC服务器地址和端口。application master(在集群内部)借此与资源管理器通信。
+    yarn.resourcemanager.resourcetracker.address|${y.rm.hostname}:8031|资源管理器的resource tracker的RPC服务器地址和端口。节点管理器(在集群内)借此与资源管理器通信
+    yarn.nodemanager.hostname|0.0.0.0|节点管理器运行所在的机器的主机名。一下缩写为${t.nm.hostname}
+    yarn.nodemanager.bind-host||节点管理器的RPC和HTTP服务器将绑定的地址
+    yarn.nodemanager.address|${y.nm.hostname}:0|节点管理器的RPC服务器地址和端口。application master(在集群内部)借此与资源管理器通信。
+    yarn.nodemanager.localizer.address|${y.nm.hostname}:8040|节点管理器的localizer的RPC服务器地址和端口
+
+* RPC服务器的属性
+
+    属性名称|默认值|说明
+    -|-|-
+    dfs.namenode.http-address|0.0.0.0:50070|namenode的HTTP服务器地址和端口
+    dfs.namenode.http-bind-host||namenode的HTTP服务器将绑定的地址
+    dfs.namenode.secondary.http-address|0.0.0.0:50090|辅助namenode的HTTP服务器地址和端口
+    dfs.datanode.http.address|0.0.0.0:50075|datanode的HTTP服务器地址和端口。注意，属性名和namenode的属性名不一样
+    mapreduce.jobhistory.webapp.address|0.0.0.0:19888|MapReduce作业历史服务器地址和端口。该属性在mapred-site.xml文件中设置
+    mapreduce.shuffle.port|13562|Shuffle句柄的HTTP端口号。为map输出结果服务，但不是用户可访问的WebUI。该属性在mapred-site.xml文件中设置
+    yarn.resourcemanager.webapp.address|${y.rm.hostname}:8088|资源管理器的HTTP服务器地址和端口
+    yarn.nodemanager.webapp.address|${y.rm.hostname}:8042|节点管理器的HTTP服务器地址和端口
+    yarn.web-proxy.address||Web应用代理服务器的HTTP服务器地址和端口。如果该属性没有设置(默认情况)，Web应用代理服务器将在资源管理器进程中运行
+
+* Hadoop的其他属性
+
+    * 集群成员
+    * 缓冲区大小：Hadoop使用一个4KB(4096字节)的缓冲区辅助I/O操作。增大缓冲区容量会显著提高性能，例如128KB(131072字节)更常用。可以通过core-site.xml文件中的io.file.buffer.size属性来设置缓冲区大小(以字节为单位)。
+    * HDFS块大小：在默认情况下,HDFS块大小时128MB，但是许多集群把块大小设得更大(如256MB，268435456字节)以降低namenode的内存压力，并向mapper传输更多数据。可以通过hdfs-site.xml文件中的dfs.blocksize属性设置块的大小(以字节为单位)。
+    * 保留的存储空间：默认情况下，datanode能够使用存储目录上的所有闲置空间。设置dfs.datanode.du.reserved属性置顶待保留的空间大小(以字节为单位)。
+    * 回收站：该信息由core-site.xml文件中的fs.trash.interval属性(以分钟为单位)设置。默认情况下，该属性的值是0，表示回收站特性无效。Hadoop的回收站设施是用户级特性。即只有由文件系统shell直接删除的文件次啊珲被放到回收站中，用程序删除的文件会被直接删除。当回收站特性被启用时，每个用户都有独立的回收站目录，即：home目录下的.Trash目录。HDFS会自动删除回收站中的文件。
+    * 作业调度
+    * 慢启动reduce：在默认情况下，调度器将会一直等待，直到该作业的5%的map任务已经结束才会调度reduce任务。对于大型作业来说，这可能会降低集群的利用率。因为在等待map任务执行完毕的过程之中，占用了reduce容器。可以将mapreduce.job.reduce.slowstart.completedmaps的值设的更大，例如0.80(80%)，能够提升吞吐率。
+    * 短回路本地读：当从HDFS读取文件时，客户端联系datanode，然后数据通过TCP连接发送给客户端。如果正在读区的数据块和客户端在同一个节点上，那么客户端绕过网络从磁盘上直接读取数据效率会更高。这又称作“短回路本地读”。通过设置dfs.client.read.shortcircuit为true来启用短回路本地读。
+
+* Kerberos票据交换协议的三个步骤
+
+    1. **认证**。客户端想认证服务器发送一条豹纹，并获取一个含时间戳的票据授予票据(Ticket-Granting Ticket, TGT)。
+    2. **授权**。客户端使用TGT向票据授予服务器请求一个服务票据。
+    3. **服务请求**。客户端向服务器出示服务票据，以证实自己的合法性。该服务器提供客户端所需服务，在Hadoop应用中，服务器可以时namenode或资源管理器。
+  
+    同时，认证服务器和票据授予服务器构成了密匙分配中心(***Key Distribution Center, KDC***)。
+
+    ![avatar](../pic/Kerberos票据交换协议的三个步骤.png)
+
+* 委托令牌：在诸如HDFS或MapReduce的分布式系统中，客户端和服务器之间频繁交互，且每次交互均需认证。如果在一个高负载集群上采用三步骤Kerberos票据交换协议来认证每次交互，则会对KDC造成很大压力。因此，Hadoop使用委托令牌来支持后续认证访问，避免了多次访问KDC。
+
+* Hadoop集群的评测程序
+
+    * **TeraSort**(自带)-生成随机数据、执行排序和验证结果，主要用来测试HDFS和MapReduce的正确性。
+    * **TestDFSIO**主要用来测试HDFS的I/O性能。该程序使用一个MapReduce作业作为并行读/写文件的一种便捷途径。
+    * **MRBench**(使用mrbench)会多次运行一个小型作业。与TeraSort相互映衬，该基准的主要目的是检验小型作业能否快速响应。
+    * **NNBench(使用nnbench)测试namenode硬件的加载过程。
+    * **Gridmix**是一个基准评测程序套装。通过模拟一些真实常见的数据访问模式，Gridmix能逼真地为一个集群的负载建模
+    * **SWIM**(Statistical Workload Injector for MapReduce)，是一个真实的MapReduce工作负载库，可以用来为被测试系统生成代表性的测试负载。
+    * **TPCx-HS**，给予TeraSort的标准基准评测程序。
+
+## 管理Hadoop 
 
 
 
