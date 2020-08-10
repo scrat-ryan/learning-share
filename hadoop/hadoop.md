@@ -499,16 +499,178 @@ combiner的数量|作业能否充分利用combiner来减少shuffle传输的数�
     * **TeraSort**(自带)-生成随机数据、执行排序和验证结果，主要用来测试HDFS和MapReduce的正确性。
     * **TestDFSIO**主要用来测试HDFS的I/O性能。该程序使用一个MapReduce作业作为并行读/写文件的一种便捷途径。
     * **MRBench**(使用mrbench)会多次运行一个小型作业。与TeraSort相互映衬，该基准的主要目的是检验小型作业能否快速响应。
-    * **NNBench(使用nnbench)测试namenode硬件的加载过程。
+    * **NNBench**(使用nnbench)测试namenode硬件的加载过程。
     * **Gridmix**是一个基准评测程序套装。通过模拟一些真实常见的数据访问模式，Gridmix能逼真地为一个集群的负载建模
     * **SWIM**(Statistical Workload Injector for MapReduce)，是一个真实的MapReduce工作负载库，可以用来为被测试系统生成代表性的测试负载。
     * **TPCx-HS**，给予TeraSort的标准基准评测程序。
 
 ## 管理Hadoop 
 
+* namenode的目录结构
 
+        ${dfs.namenode.name.dir}/
+        |—————— current
+        |     |—————— VERSION
+        |     |—————— edits_0000000000000000001-0000000000000000019
+        |     |—————— edits_inprogress_0000000000000000020
+        |     |—————— fsimage_0000000000000000000
+        |     |—————— fsimage_0000000000000000000.md5
+        |     |—————— fsimage_0000000000000000019
+        |     |—————— fsimage_0000000000000000019.md5
+        |     |—————— seen_txid
+        |—————— in_use.lock
 
+* datanode的目录结构
 
+        ${dfs.datanode.name.dir}/
+        |—————— current
+        |     |—————— BP-526805057-127.0.0.1-1411980876842
+        |     |     |—————— current
+        |     |           |—————— VERSION
+        |     |           |     |—————— finalized
+        |     |           |     |—————— blk_1073741825
+        |     |           |     |—————— blk_1073741825_1001.meta
+        |     |           |     |—————— blk_1073741826
+        |     |           |     |—————— blk_1073741826_1002.meta
+        |     |           |—————— rbw
+        |     |—————— VERSION
+        |—————— in_use.lock
+
+* 系统中数据块的位置不是有namenode维护的，而是以块列表的形式存储在datanode中(每个datanode存储的块组成的列表)。
+* 最小复制条件-整个文件系统中有99.9%的块满足最小副本级别(默认是1，有dfs.namenode.replication.min属性设置)。
+* 安全模式的命令和属性
+
+    * hdfs dfsadmin -safemode get    ---查看namenode是否处于安全模式
+    * hdfs dfsadmin -safemode wait   ---
+    * hdfs dfsadmin -safemode enter  ---进入安全模式
+    * hdfs dfsadmin -safemode leave  ---离开安全模式
+    * 属性名称|类型|默认值|说明
+      -|-|-|-
+      dfs.namenode.replication.min|int|1|成功执行写操作所需要创建的最小副本数(也称为最小副本级别)
+      dfs.namenode.safemode.threshold-pct|float|0.999|在namenode退出安全模式之前，系统中满足最小副本级别的块的比例。将这项值设为0或更小会令namenode无法启动安全模式；设为高于1则永远不会退出安全模式
+      dfs.namenode.safemode.extension|int|30000|在满足最小副本条件之后，namenode还需要处于安全模式的时间(以毫秒为单位)。对于小型集群(几十个节点)来说，这项值可以设为0
+
+* 工具 
+
+    * dfsadmin工具用途较广，既可以查找HDFS状态信息，又可以在HDFS上执行管理操作。以hdfs dfsadmin形式调用，且需要超级用户权限。
+    * 文件系统检查fsck工具--查找那些在所有datanode中均缺失的块以及过少或过多副本的块    
+
+            [admin@SZPBS-bigdata-uat-hadoop-01 dev]$ hdfs fsck /      --- 检查整个文件系统
+            ......................................................Status: CORRUPT
+             Total size:    1995570281548 B (Total open files size: 43173 B)
+             Total dirs:    1705597
+             Total files:   5685954
+             Total symlinks:        0 (Files currently being written: 6)
+             Total blocks (validated):  5656832 (avg. block size 352771 B) (Total open file blocks (not validated): 6)
+              ********************************
+              UNDER MIN REPL'D BLOCKS:  104351 (1.8446897 %)
+              dfs.namenode.replication.min: 1
+              CORRUPT FILES:    104046
+              MISSING BLOCKS:   104351
+              MISSING SIZE:     172337059501 B
+              CORRUPT BLOCKS:   104351
+              ********************************
+             Minimally replicated blocks:   5552481 (98.15531 %)
+             Over-replicated blocks:    0 (0.0 %)
+             Under-replicated blocks:   5641 (0.09972013 %)
+             Mis-replicated blocks:     106487 (1.8824494 %)
+             Default replication factor:    3
+             Average block replication: 2.886809
+             Corrupt blocks:        104351
+             Missing replicas:      8508 (0.051742215 %)
+             Number of data-nodes:      8
+             Number of racks:       2
+            FSCK ended at Tue Aug 04 16:18:24 CST 2020 in 264012 milliseconds    
+    
+
+            [admin@SZPBS-bigdata-uat-hadoop-01 dev]$ hdfs fsck /user/guosq/start-spark-sql.sh -files -blocks -racks     -- 查找一个文件的数据块
+            SLF4J: Class path contains multiple SLF4J bindings.
+            SLF4J: Found binding in [jar:file:/app/apache/hadoop-2.7.6/share/hadoop/common/lib/slf4j-log4j12-1.7.10.jar!/org/slf4j/impl/        StaticLoggerBinder.class]
+            SLF4J: Found binding in [jar:file:/app/apache/hadoop-2.7.6/share/hadoop/common/lib/alluxio-1.8.1-client.jar!/org/slf4j/impl/        StaticLoggerBinder.class]
+            SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+            SLF4J: Actual binding is of type [org.slf4j.impl.Log4jLoggerFactory]
+            Connecting to namenode via http://UAT-HADOOP-06:50070/fsck?ugi=admin&files=1&blocks=1&racks=1&        path=%2Fuser%2Fguosq%2Fstart-spark-sql.sh
+            FSCK started by admin (auth:SIMPLE) from /10.121.18.16 for path /user/guosq/start-spark-sql.sh at Tue Aug 04 16:26:18 CST 2020
+            /user/guosq/start-spark-sql.sh 199 bytes, 1 block(s):  OK
+            0. BP-772110543-10.125.210.2-1542074538412:blk_1319258598_296151146 len=199 repl=3 [/dc2/rack1/10.121.18.10:50010, /        dc2/rack2/10.121.18.11:50010, /dc2/rack2/10.121.18.13:50010]
+            
+            Status: HEALTHY
+             Total size:    199 B
+             Total dirs:    0
+             Total files:   1
+             Total symlinks:        0
+             Total blocks (validated):  1 (avg. block size 199 B)
+             Minimally replicated blocks:   1 (100.0 %)
+             Over-replicated blocks:    0 (0.0 %)
+             Under-replicated blocks:   0 (0.0 %)
+             Mis-replicated blocks:     0 (0.0 %)
+             Default replication factor:    3
+             Average block replication: 3.0
+             Corrupt blocks:        0
+             Missing replicas:      0 (0.0 %)
+             Number of data-nodes:      8
+             Number of racks:       2
+            FSCK ended at Tue Aug 04 16:26:18 CST 2020 in 0 milliseconds
+            
+            
+            The filesystem under path '/user/guosq/start-spark-sql.sh' is HEALTHY    
+
+    * datanode块扫描器
+         * 各个datanode运行一个块扫描器，定期检测本节点上的所有块，从而在客户端读到坏块之前及时地检测和修复坏块。可以依靠扫描器所维护的块列表一次扫描块，查看是否有校验和错误。扫描器还使用节流机制，来维持datanode的磁盘带宽(换句话说，块扫描器工作时仅占用一小部分磁盘带宽)。
+         * 在默认情况下，块扫描器每隔三周就会检测块，以应对可能的磁盘故障，该周期由dfs.datanode.scan.period.hours属性设置，默认值是504小时。损坏的块被报告给namenode，并被及时修复。    
+
+    * 均衡器(balancer)--是一个Hadoop守护进程，它将块从忙碌的datanode移到相对空闲的datanode，从而重新分配块。同时坚持块副本放置策略，将副本分散到不同机架，以降低数据损坏率。它不断移动块，直到集群达到均衡，即每个datanode的使用率(该节点上已使用的空间与空间容量之间的比率)和集群的使用率(集群中已使用的空间与集群的空间容量之间的比率)非常接近，差距不超过给定的阀值。手动启动命令：%start-balancer.sh -threshold(-threshold指定阀值[百分比格式], 以判定集群是否均衡。默认值10%。)任何时刻，集群中都只运行一个均衡器。为了降低集群负荷、避免干扰其他用户，均衡器被设计为在后台运行。在不同节点之间复制数据的带宽也是受限的。默认值为1MB/s, 可以通过hdfs-site.xml文件中国呢的dfs.datanode.balance.bandwidthPerSec属性重新设定(单位是字节)。
+
+* 监控
+
+    * 日志
+    * 度量和JMX(Java管理扩展)
+
+* 维护
+    * 日常维护
+        * 元数据备份--直接备份元数据文件副本(% hdfs dfsadmin -fetchImage fsimage.backup)、整合到namenode上正在使用的文件中
+        * 数据备份--给数据划分优先级，可以使用distcp工具
+        * 文件系统检查
+        * 文件系统均衡器
+    * 委任和解除节点(通常情况下，节点同时运行datanode和节点管理器，因而两者一般同时被委任或解除)
+        * 委任新节点--配置hdfs-site.xml文件指向namenode,配置yarn-site.xml文件指向资源管理器,启动datanode和资源管理器守护进程
+        * 解除旧节点
+    * 升级
+
+* 向集群添加新节点的步骤:
+
+  1. 将新节点的网络地址添加到include文件中 
+  2. 运行以下指令，将审核过的一系列datanode集合更新至namenode信息:
+
+        % hdfs dfsadmin -refreshNodes
+
+  3. 运行以下指令，将审核过的一系列节点管理器信息更新至资源管理器:
+        
+        % yarn rmadmin -refreshNodes
+
+  4. 以新节点更新slaves文件。这样的话，Hadoop控制脚本会将新节点包括在未来操作之中
+  5. 启动新的datanode和节点管理器
+  6. 检查新的datanode和节点管理器是否都出现在网页界面中
+
+* 从集群中移除芥蒂娜的步骤:
+
+  1. 将待解除节点的网络地址添加到exclude文件中，不更新include文件
+  2. 执行以下指令，使用一组新的审核过的datanode来更新namenode设置: 
+
+        % hdfs dfsadmin -refreshNodes
+
+  3. 使用一组新的审核过的节点管理器来更新资源管理器设置: 
+
+        % yarn rmadmin -refreshNodes
+
+  4. 赚到网页界面，查看待解除datanode的管理状态是否已经变为“正在解除”(Decommission In Progress)，因为此时相关的datanode正在被解除过程之中。这些datanode会把它们的块复制到其他datanode中
+  5. 当所有datanode的状态变为“解除完毕”(Decommissioned)时，表明所有块都已经复制完毕。关闭已经解除的节点。
+  6. 从include文件中移除这些节点，并运行以下命令：
+
+        % hdfs dfsadmin -refreshNodes
+        % yarn dfsadmin -refreshNodes
+        
+  7. 从slaves文件中移除节点
 
 
 
