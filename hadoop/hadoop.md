@@ -636,47 +636,77 @@ combiner的数量|作业能否充分利用combiner来减少shuffle传输的数�
         * 委任新节点--配置hdfs-site.xml文件指向namenode,配置yarn-site.xml文件指向资源管理器,启动datanode和资源管理器守护进程
         * 解除旧节点
     * 升级
+        * 兼容性--API兼容性、数据兼容性(持久数据和元数据的格式)、连接兼容性(客户端与服务器必须有相同的主版本号，但此版本号或单点发行版本号可以不同)
+
+* 允许连接到namenode的所有datanode放在一个文件中，文件名称由dfs.hosts属性指定。该文件放在namenode的本地文件系统中，每行对应一个dtanode的网络地址。如果需要为一个datanode指定多个网络地址，可将多个网络地址放在一行，由空格隔开。
+
+* 可能连接到资源管理器的各个节点管理器也在同一个文件中指定(该文件的名称由yarn.resourcemanager.nodes.include-path属性指定)。在通常情况下，由于集群中的节点同时运行datanode和节点管理器守护进程，dfs.hosts和yarn.resourcemanager.nodes.inclde-path会同时指向一个文件，即include文件。
 
 * 向集群添加新节点的步骤:
 
-  1. 将新节点的网络地址添加到include文件中 
-  2. 运行以下指令，将审核过的一系列datanode集合更新至namenode信息:
+    1. 将新节点的网络地址添加到include文件中 
+    2. 运行以下指令，将审核过的一系列datanode集合更新至namenode信息:
+ 
+          % hdfs dfsadmin -refreshNodes
+ 
+    3. 运行以下指令，将审核过的一系列节点管理器信息更新至资源管理器:
+         
+          % yarn rmadmin -refreshNodes
+ 
+    4. 以新节点更新slaves文件。这样的话，Hadoop控制脚本会将新节点包括在未 来操作之中
+    5. 启动新的datanode和节点管理器
+    6. 检查新的datanode和节点管理器是否都出现在网页界面中
 
-        % hdfs dfsadmin -refreshNodes
+* 从集群中移除旧节点的步骤:
 
-  3. 运行以下指令，将审核过的一系列节点管理器信息更新至资源管理器:
-        
-        % yarn rmadmin -refreshNodes
+    1. 将待解除节点的网络地址添加到exclude文件中，不更新include文件
+    2. 执行以下指令，使用一组新的审核过的datanode来更新namenode设置: 
+ 
+          % hdfs dfsadmin -refreshNodes
+ 
+    3. 使用一组新的审核过的节点管理器来更新资源管理器设置: 
+ 
+          % yarn rmadmin -refreshNodes
+ 
+    4. 赚到网页界面，查看待解除datanode的管理状态是否已经变为“正在解除”( Decommission In Progress)，因为此时相关的datanode正在被解除过程之 中。这些datanode会把它们的块复制到其他datanode中
+    5. 当所有datanode的状态变为“解除完毕”(Decommissioned) 时，表明所有块都已经复制完毕。关闭已经解除的节点。
+    6. 从include文件中移除这些节点，并运行以下命令：
+ 
+          % hdfs dfsadmin -refreshNodes
+          % yarn dfsadmin -refreshNodes
+ 
+    7. 从slaves文件中移除节点
 
-  4. 以新节点更新slaves文件。这样的话，Hadoop控制脚本会将新节点包括在未来操作之中
-  5. 启动新的datanode和节点管理器
-  6. 检查新的datanode和节点管理器是否都出现在网页界面中
+* HDFS的include文件和exclude文件
 
-* 从集群中移除芥蒂娜的步骤:
+  节点是否出现在include文件中|节点是否出现在exclude文件中|解释
+  -|-|-
+  否|否|节点无法连接
+  否|是|节点无法连接
+  是|否|节点可连接
+  是|是|节点可连接，将被解除
 
-  1. 将待解除节点的网络地址添加到exclude文件中，不更新include文件
-  2. 执行以下指令，使用一组新的审核过的datanode来更新namenode设置: 
+* 一般来说，升级过程可以忽略中间版本。但在某些情况下还是需要先升级到中间版本，这种情况会在发布文件中明确指出。仅当文件系统健康时，才可升级，因此有必要在升级之前调用fsck工具全面检查文件系统的状态。此外，最好保留fsck的输出报告，该报告列举了所有文件和块信息；在升级之后，再次运行fsck新建一份输出报告并比较两份报告的内容。在升级之前最好清空临时文件，包括HDFS的MapReduce系统目录和本地的临时文件等。
 
-        % hdfs dfsadmin -refreshNodes
+* 如果升级集群会导致文件系统的布局变化，则需要采用下述步骤进行升级。
+    1. 在执行升级任务之前，确保前一升级已经定妥
+    2. 关闭YARN和MapReduce守护进程
+    3. 关闭HDFS，并备份namenode目录
+    4. 在集群和客户端安装新版本的Hadoop
+    5. 使用-upgrade选项启动HDFS
+    6. 等待，知道升级完成
+    7. 检查HDFS是否运行正常
+    8. 启动YARN和MapReduce守护进程
+    9. 回滚或定妥升级任务(可选的)
 
-  3. 使用一组新的审核过的节点管理器来更新资源管理器设置: 
+* 升级的相关指令
 
-        % yarn rmadmin -refreshNodes
-
-  4. 赚到网页界面，查看待解除datanode的管理状态是否已经变为“正在解除”(Decommission In Progress)，因为此时相关的datanode正在被解除过程之中。这些datanode会把它们的块复制到其他datanode中
-  5. 当所有datanode的状态变为“解除完毕”(Decommissioned)时，表明所有块都已经复制完毕。关闭已经解除的节点。
-  6. 从include文件中移除这些节点，并运行以下命令：
-
-        % hdfs dfsadmin -refreshNodes
-        % yarn dfsadmin -refreshNodes
-        
-  7. 从slaves文件中移除节点
-
-
-
-
-
-
+    * % $NEW_HADOOP_HOME/bin/start-dfs.sh -upgrade    //让namenode升级元数据，将前一版本放在dfs.namenode.name.dir下的名为previous的新目录中。datanode升级存储目录，保留圆心的副本，将其存放在previous目录中
+    * % $NEW_HADOOP_HOME/bin/hdfs dfsadmin -upgradeProgress status     //查看升级进度
+    * % $NEW_HADOOP_HOME/bin/stop-dfs.sh       //关闭新的守护进程
+    * % $NEW_HADOOP_HOME/bin/start-dfs -rollback     //回滚previous版本
+    * % $NEW_HADOOP_HOME/bin/hdfs dfsadmin -finalizeUpgrade
+    * % $NEW_HADOOP_HOME/bin/hdfs dfsadmin -upgradeProgress status
 
 
 
