@@ -708,6 +708,14 @@ combiner的数量|作业能否充分利用combiner来减少shuffle传输的数�
     * % $NEW_HADOOP_HOME/bin/hdfs dfsadmin -finalizeUpgrade
     * % $NEW_HADOOP_HOME/bin/hdfs dfsadmin -upgradeProgress status
 
+## Avro
+
+* Apache Avro是一个独立于编程语言的数据序列化系统，旨在解决Hadoop中Writable类型的不足：缺乏语言的可移植性。
+
+
+## Parquet
+
+* Apache Parquet是一种能够有效存储嵌套数据的列式存储格式
 
 
 
